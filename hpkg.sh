@@ -32,7 +32,7 @@
  
 
 # Get user input for both what function is to be called as well as which 
-# packages are to be quereied
+# packages are to be queried
 
 ARGS=("$@")      
 function_name=$ARGS[0]   
@@ -69,7 +69,6 @@ function help_page ()
     
 function installpkg () { 
      
-    # $package_name=$@ 
     $iftbe=0 
     $binfile= `sh /opt/hpkg/tmp/$package_name/$package_name\.control BIN_FILE` 
     $binpath= `sh /opt/hpkg/tmp/$package_name/$package_name\.control BIN_PATH` 
@@ -126,7 +125,6 @@ function installpkg () {
         } 
          
 function sourceinstall () { 
-    # $package_name=$@ 
     iftbe=0     
     echo "Checking connectivity" 
      
@@ -147,7 +145,6 @@ function sourceinstall () {
 } 
  
 function localinstall () { 
-# $package_name=$@ 
 $binfile= `sh /opt/hpkg/tmp/$package_name/$package_name\.control BIN_FILE` 
 $binpath= `sh /opt/hpkg/tmp/$package_name/$package_name\.control BIN_PATH` 
 $conscript= `sh /opt/hpkg/tmp/$package_name/$package_name\.control CONSCRIPT ` 
@@ -202,7 +199,6 @@ function clean () {
 #}  
  
 function remove () { 
-    # $package_name=$@ 
     $db_file= ` echo /etc/hpkg/pkdb/inpk.pkdb` 
     #And now I'm tired, and want to sleep. Too tired for regex 
         } 
