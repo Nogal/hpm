@@ -73,7 +73,8 @@ function getthpkg () {
     `wget -c -O /opt/hpkg/tmp/$package_name\.hpkg $mirror1\/$package_name` }
 
 function exthpkg () {
-    `tar -xf /opt/hpkg/tmp/$package_name\.hpkg` 
+    `tar -xf /opt/hpkg/tmp/$package_name\.hpkg` }
+
 function installpkg () { 
      
     $iftbe=0 
