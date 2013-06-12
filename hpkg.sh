@@ -49,8 +49,7 @@ case $function_name in
     *) help_page ;;
 esac
 
-function help_page ()
-{
+function help_page () {
     # A friendly little help page. 
 
     echo "Usage:"
@@ -64,16 +63,18 @@ function help_page ()
     echo "    clean             :       clean the cache"
     echo "    update            :       update the cache (CURRENTLY UNAVAILABLE)"
     echo "    upgrade           :       upgrade current packages (CURRENTLY UNAVAILABLE)"
-    echo "    help              :       view this help page"
-    }
+    echo "    help              :       view this help page" 
+}
     
+function hpkgmv () {
+    `cd /opt/hpkg/tmp/$package_name/ ; mv ` }
+
 function installpkg () { 
      
     $iftbe=0 
     $binfile= `sh /opt/hpkg/tmp/$package_name/$package_name\.control BIN_FILE` 
     $binpath= `sh /opt/hpkg/tmp/$package_name/$package_name\.control BIN_PATH` 
     $conscript= `sh /opt/hpkg/tmp/$package_name/$package_name\.control CONSCRIPT ` 
-    $hpkgmv= `cd /opt/hpkg/tmp/$package_name/ ; mv ` 
     $gethpkg= `wget -c -O /opt/hpkg/tmp/$package_name\.hpkg $mirror1\/$package_name` 
     $exthpkg= `tar -xf /opt/hpkg/tmp/$package_name\.hpkg` 
     $deplist= `sh /opt/hpkg/tmp/$package_name/$package_name\.control DEPLIST` 
@@ -108,7 +109,7 @@ function installpkg () {
     $gethpkg 
     $exthpkg 
     hpkg install $deplist 
-    $hpkgmv $binfile $binpath 
+    hpkgmv $binfile $binpath 
     $conscript             
     echo "Registering packages in database" 
     echo $package_name\.$pkgver >> /etc/hpkg/pkdb/inpk.pkdb 
@@ -148,7 +149,6 @@ function localinstall () {
 $binfile= `sh /opt/hpkg/tmp/$package_name/$package_name\.control BIN_FILE` 
 $binpath= `sh /opt/hpkg/tmp/$package_name/$package_name\.control BIN_PATH` 
 $conscript= `sh /opt/hpkg/tmp/$package_name/$package_name\.control CONSCRIPT ` 
-$hpkgmv= `cd /opt/hpkg/tmp/$package_name/ ; mv ` 
 $exthpkg= `tar -xf /opt/hpkg/tmp/$package_name\.hpkg` 
 $deplist= `sh /opt/hpkg/tmp/$package_name/$package_name\.control DEPLIST` 
 $desktopentry= `echo /opt/hpkg/tmp/$package_name/$package_name\.desktop` 
@@ -163,7 +163,7 @@ echo $deplist
     if [[ $REPLY =~ ^[Yy]$ ]] then 
 echo "Beginning Installation." 
 hpkg -install $deplist 
-$hpkgmv $binfile $binpath 
+hpkgmv $binfile $binpath 
 $conscript 
 #How I imagine people reading this code right now. t(-.-t) 
 echo "Registering packages in database" 
