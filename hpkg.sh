@@ -69,14 +69,17 @@ function help_page () {
 function hpkgmv () {
     `cd /opt/hpkg/tmp/$package_name/ ; mv ` }
 
+function getthpkg () {
+    `wget -c -O /opt/hpkg/tmp/$package_name\.hpkg $mirror1\/$package_name` }
+
+function exthpkg () {
+    `tar -xf /opt/hpkg/tmp/$package_name\.hpkg` 
 function installpkg () { 
      
     $iftbe=0 
     $binfile= `sh /opt/hpkg/tmp/$package_name/$package_name\.control BIN_FILE` 
     $binpath= `sh /opt/hpkg/tmp/$package_name/$package_name\.control BIN_PATH` 
     $conscript= `sh /opt/hpkg/tmp/$package_name/$package_name\.control CONSCRIPT ` 
-    $gethpkg= `wget -c -O /opt/hpkg/tmp/$package_name\.hpkg $mirror1\/$package_name` 
-    $exthpkg= `tar -xf /opt/hpkg/tmp/$package_name\.hpkg` 
     $deplist= `sh /opt/hpkg/tmp/$package_name/$package_name\.control DEPLIST` 
     $desktopentry= `echo /opt/hpkg/tmp/$package_name/$package_name\.desktop` 
     $pkgver= `sh /opt/hpkg/tmp/$package_name/$package_name\.control PKGVER` 
@@ -106,8 +109,8 @@ function installpkg () {
      
     then 
     echo "Beginning Installation." 
-    $gethpkg 
-    $exthpkg 
+    gethpkg 
+    exthpkg 
     hpkg install $deplist 
     hpkgmv $binfile $binpath 
     $conscript             
@@ -149,7 +152,6 @@ function localinstall () {
 $binfile= `sh /opt/hpkg/tmp/$package_name/$package_name\.control BIN_FILE` 
 $binpath= `sh /opt/hpkg/tmp/$package_name/$package_name\.control BIN_PATH` 
 $conscript= `sh /opt/hpkg/tmp/$package_name/$package_name\.control CONSCRIPT ` 
-$exthpkg= `tar -xf /opt/hpkg/tmp/$package_name\.hpkg` 
 $deplist= `sh /opt/hpkg/tmp/$package_name/$package_name\.control DEPLIST` 
 $desktopentry= `echo /opt/hpkg/tmp/$package_name/$package_name\.desktop` 
 $pkgver= `sh /opt/hpkg/tmp/$package_name/$package_name\.control PKGVER` 
