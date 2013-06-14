@@ -49,14 +49,14 @@ def hpkgmv(package_name, source, dest)
 end
 
 def install(packages)
-#    packages.each do|a|
-#        f = File.open("/opt/hpkg/tmp/#{a}/#{a}.control", "r")
-#        data = f.read 
-#        f.close
-#        source = data
-#        dest = data
-#        source[0, 8] = ''
-#        dest = dest.match(/BIN_FILE: /)
+    packages.each do|a|
+        f = File.open("/opt/hpkg/tmp/#{a}/#{a}.control", "r")
+        data = f.read 
+        f.close
+        source = data
+        dest = data
+        source = source.match(/(?<=BIN_FILE: ).+$/)
+        dest = dest.match(/(?<=BIN_PATH: ).+$/)
 
 #GOD DAMN I FUCKING HATE DEALING WITH PARSING BULLSHIT
         puts "Installing: #{a}"
