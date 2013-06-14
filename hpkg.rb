@@ -22,6 +22,7 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
 #THE SOFTWARE. 
 
+require 'fileutils'
 
 def help_page()
     # A friendly little help page. 
@@ -42,12 +43,26 @@ def help_page()
     return 0
 end
 
-def install(packages)
-    packages.each do|a|
-        puts "Installing: #{a}"
-    end
+def hpkgmv(package_name, source, dest)
+    cd('/opt/hpkg/tmp/#{package_name}/')
+    mv(source, dest)
 end
 
+def install(packages)
+#    packages.each do|a|
+#        f = File.open("/opt/hpkg/tmp/#{a}/#{a}.control", "r")
+#        data = f.read 
+#        f.close
+#        source = data
+#        dest = data
+#        source[0, 8] = ''
+#        dest = dest.match(/BIN_FILE: /)
+
+#GOD DAMN I FUCKING HATE DEALING WITH PARSING BULLSHIT
+        puts "Installing: #{a}"
+        puts "Moving: #{a} from #{source} to #{dest}"
+    end
+end
 # Get argument values and set them to the variables:
 ARGV
 action = ARGV.shift
@@ -56,9 +71,9 @@ packages = ARGV
 # Decide which course of action to take
 case action
     when "install"; install(packages)
-    when "remove"; remove
-    when "source-install"; source-install
-    when "local-install"; local-install
+    when "remove"; remove(packages)
+    when "source-install"; source-install(packages)
+    when "local-install"; local-install(packages)
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
