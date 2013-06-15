@@ -55,7 +55,7 @@ def check_file( file, string )
     end
 end    
 
-def install(packages)
+def localinstall(packages)
     # For each package, open the control file and read the pertinent information.
     packages.each do|a|
         f = File.open("/opt/hpkg/tmp/#{a}/#{a}.control", "r")
@@ -80,6 +80,7 @@ def install(packages)
             hpkgmv(a, source[0], dest[0])
             puts "Moving: #{a} from #{source} to #{dest}"
         end
+        db_file.close
     end
 end
 
@@ -92,8 +93,8 @@ packages = ARGV
 case action
     when "install"; install(packages)
     when "remove"; remove(packages)
-    when "source-install"; source-install(packages)
-    when "local-install"; local-install(packages)
+    when "source-install"; sourceinstall(packages)
+    when "local-install"; localinstall(packages)
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
