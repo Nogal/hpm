@@ -44,8 +44,8 @@ def help_page()
 end
 
 def hpkgmv(package_name, source, dest)
-    cd('/opt/hpkg/tmp/#{package_name}/')
-    mv(source, dest)
+    FileUtils.cd("/opt/hpkg/tmp/#{package_name}/")
+    FileUtils.mv(source, dest)
 end
 
 def install(packages)
@@ -60,6 +60,7 @@ def install(packages)
 
 #GOD DAMN I FUCKING HATE DEALING WITH PARSING BULLSHIT
         puts "Installing: #{a}"
+        hpkgmv(a, source[0], dest[0])
         puts "Moving: #{a} from #{source} to #{dest}"
     end
 end
