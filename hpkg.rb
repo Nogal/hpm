@@ -48,6 +48,13 @@ def hpkgmv(package_name, source, dest)
     FileUtils.mv(source, dest)
 end
 
+def check_file( file, string )
+    # Check whether or not the string is within the contents of the file
+    File.open( file ) do |io|
+    io.each {|line| line.chomp! ; return true if line.include? string}
+    end
+end    
+
 def install(packages)
     # For each package, open the control file and read the pertinent information.
     packages.each do|a|
@@ -56,13 +63,23 @@ def install(packages)
         f.close
         source = data
         dest = data
+        pkgver = data
         source = source.match(/(?<=BIN_FILE: ).+$/)
         dest = dest.match(/(?<=BIN_PATH: ).+$/)
+        pkgver = pkgver.match(/(?<=PKGVER: ).+$/)
 
-        puts "Installing: #{a}"
-        # Move BIN_FILE to BIN_PATH form .control file. 
-        hpkgmv(a, source[0], dest[0])
-        puts "Moving: #{a} from #{source} to #{dest}"
+        #Query the database
+        db_file = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
+        if check_file(db_file, pkgver[0]) == true
+            puts "Package already installed"
+
+        else
+            puts "Installing: #{a}"
+
+            # Move BIN_FILE to BIN_PATH from .control file. 
+            hpkgmv(a, source[0], dest[0])
+            puts "Moving: #{a} from #{source} to #{dest}"
+        end
     end
 end
 
