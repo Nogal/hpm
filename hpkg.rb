@@ -49,6 +49,7 @@ def hpkgmv(package_name, source, dest)
 end
 
 def install(packages)
+    # For each package, open the control file and read the pertinent information.
     packages.each do|a|
         f = File.open("/opt/hpkg/tmp/#{a}/#{a}.control", "r")
         data = f.read 
@@ -58,12 +59,13 @@ def install(packages)
         source = source.match(/(?<=BIN_FILE: ).+$/)
         dest = dest.match(/(?<=BIN_PATH: ).+$/)
 
-#GOD DAMN I FUCKING HATE DEALING WITH PARSING BULLSHIT
         puts "Installing: #{a}"
+        # Move BIN_FILE to BIN_PATH form .control file. 
         hpkgmv(a, source[0], dest[0])
         puts "Moving: #{a} from #{source} to #{dest}"
     end
 end
+
 # Get argument values and set them to the variables:
 ARGV
 action = ARGV.shift
