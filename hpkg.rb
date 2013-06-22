@@ -98,6 +98,7 @@ def localinstall(packages)
                 open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database| 
                         database.puts "#{package_name}.#{pkgver}" }
                 
+                FileUtils.mv(desktopentry, "/usr/share/applications/" 
                 FileUtils.mv("/opt/hpkg/tmp/#{package_name}.control", "/etc/hpkg/controls/")  ### THIS NEEDS WORK
             else
                 puts "Aborting Installation"
