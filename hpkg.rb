@@ -61,12 +61,11 @@ def localinstall(packages)
         f = File.open("/opt/hpkg/tmp/#{a}/#{a}.control", "r")
         data = f.read 
         f.close
-        source = data
-        dest = data
-        pkgver = data
-        source = source.match(/(?<=BIN_FILE: ).+$/)
-        dest = dest.match(/(?<=BIN_PATH: ).+$/)
-        pkgver = pkgver.match(/(?<=PKGVER: ).+$/)
+        binfile = data.match(/(?<=BIN_FILE: ).+$/)
+        binpath = data.match(/(?<=BIN_PATH: ).+$/)
+        conscript = data.match(/(?<=CONSCRIPT: ).+$/)
+        deplist = data.match(/(?<=DEPLIST: ).+$/)
+        pkgver = data.match(/(?<=PKGVER: ).+$/)
 
         #Query the database
         db_file = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
@@ -77,8 +76,8 @@ def localinstall(packages)
             puts "Installing: #{a}"
 
             # Move BIN_FILE to BIN_PATH from .control file. 
-            hpkgmv(a, source[0], dest[0])
-            puts "Moving: #{a} from #{source} to #{dest}"
+            hpkgmv(a, binfile[0], binpath[0])
+            puts "Moving: #{a} from #{binfile} to #{binpath}"
         end
         db_file.close
     end
