@@ -64,20 +64,44 @@ def localinstall(packages)
         binfile = data.match(/(?<=BIN_FILE: ).+$/)
         binpath = data.match(/(?<=BIN_PATH: ).+$/)
         conscript = data.match(/(?<=CONSCRIPT: ).+$/)
-        deplist = data.match(/(?<=DEPLIST: ).+$/)
+        tempdeplist = data.match(/(?<=DEPLIST: ).+$/)
+        deplist = templist.split
         pkgver = data.match(/(?<=PKGVER: ).+$/)
+        package_name = packages.split ### THIS NEEDS WORK
+        desktopentry = "/opt/hpkg/tmp/#{package_name}/#{package_name}.desktop"
 
         #Query the database
+        puts "Querying Database..."
         db_file = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
         if check_file(db_file, pkgver[0]) == true
             puts "Package already installed"
 
         else
-            puts "Installing: #{a}"
+            puts "List of dependencies to install:"
+            puts deplist
+            puts "Proceed with package installation? "
+            proceed = gets
+            proceed = proceed.chomp
 
-            # Move BIN_FILE to BIN_PATH from .control file. 
-            hpkgmv(a, binfile[0], binpath[0])
-            puts "Moving: #{a} from #{binfile} to #{binpath}"
+            if proceed == "Y" || proceed == "y"
+                puts "Beginning Installation: "
+                deplist.each {|dependency| install(dependency)}   ####   THIS NEEDS TO BE INTEGRATED INTO THE REST
+
+                # Move BIN_FILE to BIN_PATH from .control file. 
+                hpkgmv(a, binfile[0], binpath[0])
+                puts "Moving: #{a} from #{binfile} to #{binpath}"
+                
+                #DO SOMETHING WITH CONSCRIPT HERE
+
+                # Register packages within the database
+                puts "Registering packages in database"
+                open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database| 
+                        database.puts "#{package_name}.#{pkgver}" }
+                
+                FileUtils.mv("/opt/hpkg/tmp/#{package_name}.control", "/etc/hpkg/controls/")  ### THIS NEEDS WORK
+            else
+                puts "Aborting Installation"
+            end
         end
         db_file.close
     end
