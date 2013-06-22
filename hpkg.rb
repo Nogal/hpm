@@ -55,57 +55,55 @@ def check_file( file, string )
     end
 end    
 
-def localinstall(packages)
-    # For each package, open the control file and read the pertinent information.
-    packages.each do|a|
-        f = File.open("/opt/hpkg/tmp/#{a}/#{a}.control", "r")
-        data = f.read 
-        f.close
-        binfile = data.match(/(?<=BIN_FILE: ).+$/)
-        binpath = data.match(/(?<=BIN_PATH: ).+$/)
-        conscript = data.match(/(?<=CONSCRIPT: ).+$/)
-        tempdeplist = data.match(/(?<=DEPLIST: ).+$/)
-        deplist = templist.split
-        pkgver = data.match(/(?<=PKGVER: ).+$/)
-        package_name = packages.split ### THIS NEEDS WORK
-        desktopentry = "/opt/hpkg/tmp/#{package_name}/#{package_name}.desktop"
+def localinstall(package_name)
+    # Open the control file and read the pertinent information.
+    f = File.open("/opt/hpkg/tmp/#{package_name}/#{package_name}.control", "r")
+    data = f.read 
+    f.close
+    binfile = data.match(/(?<=BIN_FILE: ).+$/)
+    binpath = data.match(/(?<=BIN_PATH: ).+$/)
+    conscript = data.match(/(?<=CONSCRIPT: ).+$/)
+    tempdeplist = data.match(/(?<=DEPLIST: ).+$/)
+    deplist = templist.split
+    pkgver = data.match(/(?<=PKGVER: ).+$/)
+    desktopentry = "/opt/hpkg/tmp/#{package_name}/#{package_name}.desktop"
 
-        #Query the database
-        puts "Querying Database..."
-        db_file = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
-        if check_file(db_file, pkgver[0]) == true
-            puts "Package already installed"
+    #Query the database
+    puts "Querying Database..."
+    db_file = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
+    if check_file(db_file, pkgver) == true
+        puts "Package already installed"
 
+    else
+        puts "List of dependencies to install:"
+        puts deplist
+        puts "Proceed with package installation? "
+        proceed = gets
+        proceed = proceed.chomp
+
+        if proceed == "Y" || proceed == "y"
+            puts "Beginning Installation: "
+            deplist.each {|dependency| install(dependency)}   ####   THIS NEEDS TO BE INTEGRATED INTO THE REST
+
+            # Move BIN_FILE to BIN_PATH from .control file. 
+            hpkgmv(a, binfile[0], binpath[0])
+            puts "Moving: #{package_name} from #{binfile} to #{binpath}"
+                
+            #DO SOMETHING WITH CONSCRIPT HERE
+
+            # Register packages within the database
+            puts "Registering packages in database"
+            open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database| 
+                    database.puts "#{package_name}.#{pkgver}" }
+                
+            FileUtils.mv(desktopentry, "/usr/share/applications/" 
+            FileUtils.mv("/opt/hpkg/tmp/#{package_name}.control", "/etc/hpkg/controls/")  ### THIS NEEDS WORK
         else
-            puts "List of dependencies to install:"
-            puts deplist
-            puts "Proceed with package installation? "
-            proceed = gets
-            proceed = proceed.chomp
-
-            if proceed == "Y" || proceed == "y"
-                puts "Beginning Installation: "
-                deplist.each {|dependency| install(dependency)}   ####   THIS NEEDS TO BE INTEGRATED INTO THE REST
-
-                # Move BIN_FILE to BIN_PATH from .control file. 
-                hpkgmv(a, binfile[0], binpath[0])
-                puts "Moving: #{a} from #{binfile} to #{binpath}"
-                
-                #DO SOMETHING WITH CONSCRIPT HERE
-
-                # Register packages within the database
-                puts "Registering packages in database"
-                open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database| 
-                        database.puts "#{package_name}.#{pkgver}" }
-                
-                FileUtils.mv(desktopentry, "/usr/share/applications/" 
-                FileUtils.mv("/opt/hpkg/tmp/#{package_name}.control", "/etc/hpkg/controls/")  ### THIS NEEDS WORK
-            else
-                puts "Aborting Installation"
-            end
+            puts "Aborting Installation"
         end
-        db_file.close
     end
+    db_file.close
+end
 end
 
 # Get argument values and set them to the variables:
@@ -115,10 +113,10 @@ packages = ARGV
 
 # Decide which course of action to take
 case action
-    when "install"; install(packages)
-    when "remove"; remove(packages)
-    when "source-install"; sourceinstall(packages)
-    when "local-install"; localinstall(packages)
+    when "install"; packages.each {|package| install(package)}
+    when "remove"; packages.each {|package| remove(package)}
+    when "source-install"; packages.each {|package| sourceinstall(package)}
+    when "local-install"; packages.each {|package| localinstall(package)}
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
