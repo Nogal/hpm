@@ -23,8 +23,6 @@
 #THE SOFTWARE. 
 
 require 'fileutils'
-require 'archive/tar/minitar'
-require 'stringio'
 
 def helpPage()
     # A friendly little help page. 
@@ -50,6 +48,10 @@ def hpkgmv(packageName, source, dest)
     FileUtils.mv(source, dest)
 end
 
+def gethpkg(packageName, mirror)
+    puts `wget -c -0 /opt/hpkg/tmp/#{packageName}.hpkg #{mirror}/#{packageName}`
+end
+
 def checkFile( file, string )
     # Check whether or not the string is within the contents of the file
     File.open( file ) do |io|
@@ -57,15 +59,58 @@ def checkFile( file, string )
     end
 end    
 
-def unpack_tar(directory, string)
-    FileUtils.mkdir_p(directory) if !File.exists?(directory)
-    stringio = StringIO.new(string)
-    input = Archive::Tar::Minitar::Input.new(stringio)
-    input.each {|entry|
-        input.extract_entry(directory, entry)
-    }
-         #  Like this:
-         #  unpack_tar("./test", File.open("Downloads.tar", "rb") {|a| a.read})
+def exthpkg(packageName)
+    puts `tar -xf /opt/hpkg/tmp/#{packageName}.hpkg`
+end
+
+def install(packageName)
+    # Open the control file and read the pertinent information.
+    f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
+    data = f.read 
+    f.close
+    binfile = data.match(/(?<=BIN_FILE: ).+$/)
+    binpath = data.match(/(?<=BIN_PATH: ).+$/)
+    conscript = data.match(/(?<=CONSCRIPT: ).+$/)
+    tempdeplist = data.match(/(?<=DEPLIST: ).+$/)
+    deplist = tempdeplist.split
+    pkgver = data.match(/(?<=PKGVER: ).+$/)
+    desktopentry = "/opt/hpkg/tmp/#{packageName}/#{packageName}.desktop"
+    # mirror = # hmmm.
+    
+    # CHECK MIRROR STATUS ..... somehow
+
+    #Query the database
+    puts "Querying Database..."
+    dbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
+    if checkFile(dbFile, "#{packageName}.#{pkgver}") == true 
+        puts "Package already installed"
+    else
+        puts "List of dependencies to be installed: "
+        puts deplist
+
+        proceed = gets
+        proceed = proceed.chomp
+
+        if proceed == "Y" || proceed == "y"
+            puts "Beginning Installation"
+            gethpkg(packageName, mirror)
+            exthpkg(packageName)
+            deplist.each {|dependency| install(dependency)}   ####   THIS NEEDS TO BE INTEGRATED INTO THE REST
+
+        hpkgmv(packageName, binfile, binpath)
+        puts `#{conscript}`
+
+        puts "Registering packgages in database"
+        open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database| 
+               database.puts "#{packageName}.#{pkgver}" }
+               
+        FileUtils.mv(desktopentry, "/usr/share/applications/")
+        FileUtils.mv("/opt/hpkg/tmp/#{packageName}.control", "/etc/hpkg/controls/")  
+        else
+            puts "Aborting Installation"
+        end
+    end
+    dbFile.close
 end
 
 def localinstall(packageName)
@@ -110,14 +155,14 @@ def localinstall(packageName)
             open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database| 
                     database.puts "#{packageName}.#{pkgver}" }
                 
-            FileUtils.mv(desktopentry, "/usr/share/applications/" 
-            FileUtils.mv("/opt/hpkg/tmp/#{packageName}.control", "/etc/hpkg/controls/")  ### THIS NEEDS WORK
+            FileUtils.mv(desktopentry, "/usr/share/applications/")
+            FileUtils.mv("/opt/hpkg/tmp/#{packageName}.control", "/etc/hpkg/controls/")  
+           
         else
             puts "Aborting Installation"
         end
     end
     dbFile.close
-end
 end
 
 # Get argument values and set them to the variables:
