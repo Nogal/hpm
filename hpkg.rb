@@ -24,6 +24,7 @@
 
 require 'fileutils'
 require 'archive/tar/minitar'
+require 'stringio'
 
 def helpPage()
     # A friendly little help page. 
@@ -55,6 +56,17 @@ def checkFile( file, string )
     io.each {|line| line.chomp! ; return true if line.include? string}
     end
 end    
+
+def unpack_tar(directory, string)
+    FileUtils.mkdir_p(directory) if !File.exists?(directory)
+    stringio = StringIO.new(string)
+    input = Archive::Tar::Minitar::Input.new(stringio)
+    input.each {|entry|
+        input.extract_entry(directory, entry)
+    }
+         #  Like this:
+         #  unpack_tar("./test", File.open("Downloads.tar", "rb") {|a| a.read})
+end
 
 def localinstall(packageName)
     # Open the control file and read the pertinent information.
