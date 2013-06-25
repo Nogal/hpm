@@ -24,7 +24,7 @@
 
 require 'fileutils'
 
-def help_page()
+def helpPage()
     # A friendly little help page. 
 
     puts "Usage"
@@ -43,35 +43,35 @@ def help_page()
     return 0
 end
 
-def hpkgmv(package_name, source, dest)
-    FileUtils.cd("/opt/hpkg/tmp/#{package_name}/")
+def hpkgmv(packageName, source, dest)
+    FileUtils.cd("/opt/hpkg/tmp/#{packageName}/")
     FileUtils.mv(source, dest)
 end
 
-def check_file( file, string )
+def checkFile( file, string )
     # Check whether or not the string is within the contents of the file
     File.open( file ) do |io|
     io.each {|line| line.chomp! ; return true if line.include? string}
     end
 end    
 
-def localinstall(package_name)
+def localinstall(packageName)
     # Open the control file and read the pertinent information.
-    f = File.open("/opt/hpkg/tmp/#{package_name}/#{package_name}.control", "r")
+    f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
     data = f.read 
     f.close
     binfile = data.match(/(?<=BIN_FILE: ).+$/)
     binpath = data.match(/(?<=BIN_PATH: ).+$/)
     conscript = data.match(/(?<=CONSCRIPT: ).+$/)
     tempdeplist = data.match(/(?<=DEPLIST: ).+$/)
-    deplist = templist.split
+    deplist = tempdeplist.split
     pkgver = data.match(/(?<=PKGVER: ).+$/)
-    desktopentry = "/opt/hpkg/tmp/#{package_name}/#{package_name}.desktop"
+    desktopentry = "/opt/hpkg/tmp/#{packageName}/#{packageName}.desktop"
 
     #Query the database
     puts "Querying Database..."
-    db_file = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
-    if check_file(db_file, pkgver) == true
+    dbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
+    if checkFile(dbFile, "#{packageName}.#{pkgver}") == true 
         puts "Package already installed"
 
     else
@@ -86,23 +86,23 @@ def localinstall(package_name)
             deplist.each {|dependency| install(dependency)}   ####   THIS NEEDS TO BE INTEGRATED INTO THE REST
 
             # Move BIN_FILE to BIN_PATH from .control file. 
-            hpkgmv(a, binfile[0], binpath[0])
-            puts "Moving: #{package_name} from #{binfile} to #{binpath}"
+            hpkgmv(a, binfile, binpath)
+            puts "Moving: #{packageName} from #{binfile} to #{binpath}"
                 
             #DO SOMETHING WITH CONSCRIPT HERE
 
             # Register packages within the database
             puts "Registering packages in database"
             open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database| 
-                    database.puts "#{package_name}.#{pkgver}" }
+                    database.puts "#{packageName}.#{pkgver}" }
                 
             FileUtils.mv(desktopentry, "/usr/share/applications/" 
-            FileUtils.mv("/opt/hpkg/tmp/#{package_name}.control", "/etc/hpkg/controls/")  ### THIS NEEDS WORK
+            FileUtils.mv("/opt/hpkg/tmp/#{packageName}.control", "/etc/hpkg/controls/")  ### THIS NEEDS WORK
         else
             puts "Aborting Installation"
         end
     end
-    db_file.close
+    dbFile.close
 end
 end
 
@@ -120,5 +120,5 @@ case action
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
-    else help_page
+    else helpPage
 end
