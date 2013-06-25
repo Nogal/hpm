@@ -23,6 +23,7 @@
 #THE SOFTWARE. 
 
 require 'fileutils'
+require 'archive/tar/minitar'
 
 def helpPage()
     # A friendly little help page. 
@@ -89,7 +90,8 @@ def localinstall(packageName)
             hpkgmv(a, binfile, binpath)
             puts "Moving: #{packageName} from #{binfile} to #{binpath}"
                 
-            #DO SOMETHING WITH CONSCRIPT HERE
+            # Run the control script
+            puts `#{conscript}`
 
             # Register packages within the database
             puts "Registering packages in database"
