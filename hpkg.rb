@@ -45,7 +45,7 @@ end
 
 def clean()
     puts "Cleaning Cache: "
-    FileUtils::Verbose.rm_rf("/opt/hpkg/tmp")
+    FileUtils::Verbose.rm_rf("/opt/hpkg/tmp/*")
     puts "Cache Cleaned"
 end
 
