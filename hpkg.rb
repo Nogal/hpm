@@ -43,6 +43,12 @@ def helpPage()
     return 0
 end
 
+def clean()
+    puts "Cleaning Cache: "
+    FileUtils::Verbose.rm_rf("/opt/hpkg/tmp")
+    puts "Cache Cleaned"
+end
+
 def hpkgmv(packageName, source, dest)
     FileUtils.cd("/opt/hpkg/tmp/#{packageName}/")
     FileUtils.mv(source, dest)
