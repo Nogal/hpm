@@ -69,6 +69,27 @@ def exthpkg(packageName)
     puts `tar -xf /opt/hpkg/tmp/#{packageName}.hpkg`
 end
 
+def package_queue(packages)
+    packages.each do |packageName|
+        # Open the control file and read the pertinent information.
+        f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
+        data = f.read 
+        f.close
+        tempdeplist = data.match(/(?<=DEPLIST: ).+$/)
+        deplist = tempdeplist.split
+        pkgver = data.match(/(?<=PKGVER: ).+$/)
+    
+        if deplist.empty? == false
+            deplist.each {|dependency|        
+            if !packages.include?(dependency)
+                packages = dependency + packages 
+                package_queue(packages)
+            end
+            } 
+        end
+    end 
+end
+
 def install(packageName)
     # Open the control file and read the pertinent information.
     f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
@@ -178,9 +199,13 @@ packages = ARGV
 
 # Decide which course of action to take
 case action
-    when "install"; packages.each {|package| install(package)}
+    when "install" 
+        package_queue(packages)
+        packages.each {|package| install(package)}
     when "remove"; packages.each {|package| remove(package)}
-    when "source-install"; packages.each {|package| sourceinstall(package)}
+    when "source-install" 
+        package_queue(packages)
+        packages.each {|package| sourceinstall(package)}
     when "local-install"; packages.each {|package| localinstall(package)}
     when "clean"; clean
     when "update"; update
