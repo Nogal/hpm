@@ -195,7 +195,8 @@ case action
             puts "Aborting Installation"
         end
     when "remove"; packages.each {|package| remove(package)}
-    when "source-install" 
+    when "source-install"; packages.each {|package| sourceinstall(package)}
+    when "local-install" 
         package_queue(packages)
         puts "List of packages to be installed: "
         puts packages
@@ -203,11 +204,10 @@ case action
         proceed = gets
         proceed = proceed.chomp
         if proceed == "Y" || proceed == "y"
-            packages.each {|package| sourceinstall(package)}
+       	    packages.each {|package| localinstall(package)}
         else
             puts "Aborting Installation"
         end
-    when "local-install"; packages.each {|package| localinstall(package)}
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
