@@ -105,6 +105,13 @@ def is_installed(packageName, pkgver)
     end
 end
 
+def sourceinstall(packageName)
+    # Do some mirror magic...
+
+    `wget -c -O /opt/hpkg/tmp/#{packageName}.hpkgbuild #{mirror}/source/#{packageName}.hpkgbuild`
+    `sh /opt/hpkg/tmp/#{packageName}.hkpgbuild`
+end
+
 def install(packageName)
     # Open the control file and read the pertinent information.
     f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
