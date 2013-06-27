@@ -81,13 +81,28 @@ def package_queue(packages)
     
         if deplist.empty? == false
             deplist.each {|dependency|        
-            if !packages.include?(dependency)
-                packages = dependency + packages 
-                package_queue(packages)
-            end
+               if is_installed(packageName, pkgver) == false
+                    if !packages.include?(dependency)
+                        packages = dependency + packages 
+                        package_queue(packages)
+                    end
+                end
             } 
         end
     end 
+end
+
+def is_installed(packageName, pkgver)
+    #Query the database
+    puts "Checking #{packageName}..."
+    dbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
+    if checkFile(dbFile, "#{packageName}.#{pkgver}") == true 
+        puts "Package already installed"
+        return true
+    else
+        puts "#{packageName} is to be installed."
+        return false
+    end
 end
 
 def install(packageName)
@@ -106,37 +121,25 @@ def install(packageName)
     
     # CHECK MIRROR STATUS ..... somehow
 
-    #Query the database
-    puts "Querying Database..."
-    dbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
-    if checkFile(dbFile, "#{packageName}.#{pkgver}") == true 
-        puts "Package already installed"
-    else
-        puts "List of dependencies to be installed: "
-        puts deplist
+    # Get the required packages and extract them
+    gethpkg(packageName, mirror)
+    exthpkg(packageName)
 
-        proceed = gets
-        proceed = proceed.chomp
+    puts "Installing #{packageName}..."
+    # Move BIN_FILE to BIN_PATH from .control file. 
+    hpkgmv(packageName, binfile, binpath)
+    puts "Moving: #{packageName} from #{binfile} to #{binpath}"
 
-        if proceed == "Y" || proceed == "y"
-            puts "Beginning Installation"
-            gethpkg(packageName, mirror)
-            exthpkg(packageName)
-            deplist.each {|dependency| install(dependency)}   ####   THIS NEEDS TO BE INTEGRATED INTO THE REST
+    # Run the control script
+    puts `#{conscript}`
 
-        hpkgmv(packageName, binfile, binpath)
-        puts `#{conscript}`
-
-        puts "Registering packgages in database"
-        open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database| 
-               database.puts "#{packageName}.#{pkgver}" }
-               
-        FileUtils.mv(desktopentry, "/usr/share/applications/")
-        FileUtils.mv("/opt/hpkg/tmp/#{packageName}.control", "/etc/hpkg/controls/")  
-        else
-            puts "Aborting Installation"
-        end
-    end
+    puts "Registering packgages in database"
+    open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database| 
+           database.puts "#{packageName}.#{pkgver}" }
+           
+    # Register packages within the database
+    FileUtils.mv(desktopentry, "/usr/share/applications/")
+    FileUtils.mv("/opt/hpkg/tmp/#{packageName}.control", "/etc/hpkg/controls/")  
     dbFile.close
 end
 
@@ -153,42 +156,22 @@ def localinstall(packageName)
     pkgver = data.match(/(?<=PKGVER: ).+$/)
     desktopentry = "/opt/hpkg/tmp/#{packageName}/#{packageName}.desktop"
 
-    #Query the database
-    puts "Querying Database..."
-    dbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
-    if checkFile(dbFile, "#{packageName}.#{pkgver}") == true 
-        puts "Package already installed"
+    puts "Installing #{packagName}..."
 
-    else
-        puts "List of dependencies to install:"
-        puts deplist
-        puts "Proceed with package installation? "
-        proceed = gets
-        proceed = proceed.chomp
+    # Move BIN_FILE to BIN_PATH from .control file. 
+    hpkgmv(packageName, binfile, binpath)
+    puts "Moving: #{packageName} from #{binfile} to #{binpath}"
+        
+    # Run the control script
+    puts `#{conscript}`
 
-        if proceed == "Y" || proceed == "y"
-            puts "Beginning Installation: "
-            deplist.each {|dependency| install(dependency)}   ####   THIS NEEDS TO BE INTEGRATED INTO THE REST
-
-            # Move BIN_FILE to BIN_PATH from .control file. 
-            hpkgmv(a, binfile, binpath)
-            puts "Moving: #{packageName} from #{binfile} to #{binpath}"
-                
-            # Run the control script
-            puts `#{conscript}`
-
-            # Register packages within the database
-            puts "Registering packages in database"
-            open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database| 
-                    database.puts "#{packageName}.#{pkgver}" }
-                
-            FileUtils.mv(desktopentry, "/usr/share/applications/")
-            FileUtils.mv("/opt/hpkg/tmp/#{packageName}.control", "/etc/hpkg/controls/")  
-           
-        else
-            puts "Aborting Installation"
-        end
-    end
+    # Register packages within the database
+    puts "Registering packages in database"
+    open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database| 
+            database.puts "#{packageName}.#{pkgver}" }
+        
+    FileUtils.mv(desktopentry, "/usr/share/applications/")
+    FileUtils.mv("/opt/hpkg/tmp/#{packageName}.control", "/etc/hpkg/controls/")  
     dbFile.close
 end
 
@@ -201,11 +184,29 @@ packages = ARGV
 case action
     when "install" 
         package_queue(packages)
-        packages.each {|package| install(package)}
+        puts "List of packages to be installed: "
+        puts packages
+        puts "Proceed with installation? "
+        proceed = gets
+        proceed = proceed.chomp
+        if proceed == "Y" || proceed == "y"
+            packages.each {|package| install(package)}
+        else
+            puts "Aborting Installation"
+        end
     when "remove"; packages.each {|package| remove(package)}
     when "source-install" 
         package_queue(packages)
-        packages.each {|package| sourceinstall(package)}
+        puts "List of packages to be installed: "
+        puts packages
+        puts "Proceed with installation? "
+        proceed = gets
+        proceed = proceed.chomp
+        if proceed == "Y" || proceed == "y"
+            packages.each {|package| sourceinstall(package)}
+        else
+            puts "Aborting Installation"
+        end
     when "local-install"; packages.each {|package| localinstall(package)}
     when "clean"; clean
     when "update"; update
