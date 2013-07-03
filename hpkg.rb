@@ -1,44 +1,44 @@
-#!/usr/bin/env ruby 
+#!/usr/bin/env ruby
 
-#The MIT License (MIT) 
+#The MIT License (MIT)
 
-#Copyright (c) <2013> <Brian Manderville; HighWater OS> 
+#Copyright (c) <2013> <Brian Manderville; Brian McCoskey; Descent|OS>
 
-#Permission is hereby granted, free of charge, to any person obtaining a copy 
-#of this software and associated documentation files (the "Software"), to deal 
-#in the Software without restriction, including without limitation the rights 
-#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-#copies of the Software, and to permit persons to whom the Software is 
-#furnished to do so, subject to the following conditions 
+#Permission is hereby granted, free of charge, to any person obtaining a copy
+#of this software and associated documentation files (the "Software"), to deal
+#in the Software without restriction, including without limitation the rights
+#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#copies of the Software, and to permit persons to whom the Software is
+#furnished to do so, subject to the following conditions
 
-#The above copyright notice and this permission notice shall be included in 
-#all copies or substantial portions of the Software. 
+#The above copyright notice and this permission notice shall be included in
+#all copies or substantial portions of the Software.
 
-#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
-#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
-#THE SOFTWARE. 
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+#THE SOFTWARE.
 
 require 'fileutils'
 
 def helpPage()
-    # A friendly little help page. 
+    # A friendly little help page.
 
     puts "Usage"
-    puts "    hpkg (options) {package}"
+    puts " hpkg (options) {package}"
     puts ""
     puts "Options include:"
-    puts "    install           :       install selected binary package(s) from repository"
-    puts "    source-install    :       install selected package(s) from source"
-    puts "    local-install     :       install selected local package(s)"
-    puts "    remove            :       remove selected package(s)"
-    puts "    clean             :       clean the cache"
-    puts "    update            :       update the cache (CURRENTLY UNAVAILABLE)"
-    puts "    upgrade           :       upgrade current packages (CURRENTLY UNAVAILABLE)"
-    puts "    help              :       view this help page" 
+    puts " install : install selected binary package(s) from repository"
+    puts " source-install : install selected package(s) from source"
+    puts " local-install : install selected local package(s)"
+    puts " remove : remove selected package(s)"
+    puts " clean : clean the cache"
+    puts " update : update the cache (CURRENTLY UNAVAILABLE)"
+    puts " upgrade : upgrade current packages (CURRENTLY UNAVAILABLE)"
+    puts " help : view this help page"
     puts ""
     return 0
 end
@@ -63,7 +63,7 @@ def checkFile( file, string )
     File.open( file ) do |io|
     io.each {|line| line.chomp! ; return true if line.include? string}
     end
-end    
+end
 
 def exthpkg(packageName)
     puts `tar -xf /opt/hpkg/tmp/#{packageName}.hpkg`
@@ -73,30 +73,30 @@ def package_queue(packages)
     packages.each do |packageName|
         # Open the control file and read the pertinent information.
         f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
-        data = f.read 
+        data = f.read
         f.close
         tempdeplist = data.match(/(?<=DEPLIST: ).+$/)
         deplist = tempdeplist.split
         pkgver = data.match(/(?<=PKGVER: ).+$/)
     
         if deplist.empty? == false
-            deplist.each {|dependency|        
+            deplist.each {|dependency|
                if is_installed(packageName, pkgver) == false
                     if !packages.include?(dependency)
-                        packages = dependency + packages 
+                        packages = dependency + packages
                         package_queue(packages)
                     end
                 end
-            } 
+            }
         end
-    end 
+    end
 end
 
 def is_installed(packageName, pkgver)
     #Query the database
     puts "Checking #{packageName}..."
     dbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
-    if checkFile(dbFile, "#{packageName}.#{pkgver}") == true 
+    if checkFile(dbFile, "#{packageName}.#{pkgver}") == true
         puts "Package already installed"
         return true
     else
@@ -115,7 +115,7 @@ end
 def install(packageName)
     # Open the control file and read the pertinent information.
     f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
-    data = f.read 
+    data = f.read
     f.close
     binfile = data.match(/(?<=BIN_FILE: ).+$/)
     binpath = data.match(/(?<=BIN_PATH: ).+$/)
@@ -133,7 +133,7 @@ def install(packageName)
     exthpkg(packageName)
 
     puts "Installing #{packageName}..."
-    # Move BIN_FILE to BIN_PATH from .control file. 
+    # Move BIN_FILE to BIN_PATH from .control file.
     hpkgmv(packageName, binfile, binpath)
     puts "Moving: #{packageName} from #{binfile} to #{binpath}"
 
@@ -141,19 +141,19 @@ def install(packageName)
     puts `#{conscript}`
 
     puts "Registering packgages in database"
-    open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database| 
+    open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database|
            database.puts "#{packageName}.#{pkgver}" }
            
     # Register packages within the database
     FileUtils.mv(desktopentry, "/usr/share/applications/")
-    FileUtils.mv("/opt/hpkg/tmp/#{packageName}.control", "/etc/hpkg/controls/")  
+    FileUtils.mv("/opt/hpkg/tmp/#{packageName}.control", "/etc/hpkg/controls/")
     dbFile.close
 end
 
 def localinstall(packageName)
     # Open the control file and read the pertinent information.
     f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
-    data = f.read 
+    data = f.read
     f.close
     binfile = data.match(/(?<=BIN_FILE: ).+$/)
     binpath = data.match(/(?<=BIN_PATH: ).+$/)
@@ -165,7 +165,7 @@ def localinstall(packageName)
 
     puts "Installing #{packagName}..."
 
-    # Move BIN_FILE to BIN_PATH from .control file. 
+    # Move BIN_FILE to BIN_PATH from .control file.
     hpkgmv(packageName, binfile, binpath)
     puts "Moving: #{packageName} from #{binfile} to #{binpath}"
         
@@ -174,22 +174,22 @@ def localinstall(packageName)
 
     # Register packages within the database
     puts "Registering packages in database"
-    open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database| 
+    open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database|
             database.puts "#{packageName}.#{pkgver}" }
         
     FileUtils.mv(desktopentry, "/usr/share/applications/")
-    FileUtils.mv("/opt/hpkg/tmp/#{packageName}.control", "/etc/hpkg/controls/")  
+    FileUtils.mv("/opt/hpkg/tmp/#{packageName}.control", "/etc/hpkg/controls/")
     dbFile.close
 end
 
 # Get argument values and set them to the variables:
 ARGV
 action = ARGV.shift
-packages = ARGV    
+packages = ARGV
 
 # Decide which course of action to take
 case action
-    when "install" 
+    when "install"
         package_queue(packages)
         puts "List of packages to be installed: "
         puts packages
@@ -203,7 +203,7 @@ case action
         end
     when "remove"; packages.each {|package| remove(package)}
     when "source-install"; packages.each {|package| sourceinstall(package)}
-    when "local-install" 
+    when "local-install"
         package_queue(packages)
         puts "List of packages to be installed: "
         puts packages
@@ -211,7 +211,7 @@ case action
         proceed = gets
         proceed = proceed.chomp
         if proceed == "Y" || proceed == "y"
-       	    packages.each {|package| localinstall(package)}
+        packages.each {|package| localinstall(package)}
         else
             puts "Aborting Installation"
         end

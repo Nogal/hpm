@@ -4,7 +4,7 @@
 
 #The MIT License (MIT)
 
-#Copyright (c) <2013> <Brian Manderville ; Highwater OS>
+#Copyright (c) <2013> <Brian Manderville ; Brian McCoskey; Descent|OS>
 
 #Permission is hereby granted, free of charge, to any person obtaining a copy
 #of this software and associated documentation files (the "Software"), to deal

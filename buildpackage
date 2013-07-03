@@ -1,0 +1,43 @@
+How to build an hpkg.
+
+
+First, you build a control.
+
+vi <package_name>.control
+
+
+
+-------------------------------
+
+
+BIN_FILE= <Binary Application>
+BIN_PATH= <Binary Application's Path>
+DEPLIST= <List of Dependencies to install>
+PKGVER= <Package Version>
+CONSCRIPT= <Control Script. Basically moves all files to the right place and does proper updates of other registries.>
+
+
+-------------------------------
+
+
+
+Once the control is built, place it in the directory with the rest of your package data.
+
+Directory Contents for the package should look like this.
+
+# ls package_dir
+
+<binary>
+<Library Folders>
+<Desktop Entry>
+<Control Script>
+
+
+
+Create the package by cd'ing one directory before the package directory... and executing this command.
+
+
+tar -czvf package.hpkg package_dir/*
+
+
+Congrats, HPKG built!
