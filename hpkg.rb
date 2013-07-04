@@ -145,11 +145,19 @@ def sourceinstall(packageName)
 end
 
 def install(packageName)
-    # Install a package from a mirror. Open the .control file to obtain the
-    # necessary information for the package. Check for connectivity to the
-    # mirror, if so, download the package, extract it, move the exectuable
+    # Install a package from a mirror. Check for connectivity to the
+    # mirror, if so, download the package, extract it. Open the .control file 
+    # to obtain the  necessary information for the package, move the exectuable
     # to the correct path, run the control script, and register the package
     # in the local database.
+
+    # mirror = # hmmm.
+    
+    # CHECK MIRROR STATUS ..... somehow
+
+    # Get the required packages and extract them
+    gethpkg(packageName, mirror)
+    exthpkg(packageName)
 
     # Open the control file and read the pertinent information.
     f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
@@ -162,13 +170,6 @@ def install(packageName)
     deplist = tempdeplist.split
     pkgver = data.match(/(?<=PKGVER: ).+$/)
     desktopentry = "/opt/hpkg/tmp/#{packageName}/#{packageName}.desktop"
-    # mirror = # hmmm.
-    
-    # CHECK MIRROR STATUS ..... somehow
-
-    # Get the required packages and extract them
-    gethpkg(packageName, mirror)
-    exthpkg(packageName)
 
     puts "Installing #{packageName}..."
     # Move BIN_FILE to BIN_PATH from .control file.
@@ -189,11 +190,13 @@ def install(packageName)
 end
 
 def localinstall(packageName)
-    # Install a package from a local file. Open the .control file to obtain the
-    # necessary information for the package. Check for connectivity to the
-    # mirror, if so, download the package, extract it, move the exectuable
+    # Install a package from a local sourc. Extract it. Open the .control file 
+    # to obtain the  necessary information for the package, move the exectuable
     # to the correct path, run the control script, and register the package
     # in the local database.
+
+    FileUtils.mv("./#{packageName}", "/opt/hpkg/tmp/")
+    exthpkg(packageName)
 
     # Open the control file and read the pertinent information.
     f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
