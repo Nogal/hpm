@@ -1,21 +1,20 @@
-#!/bin/sh
+#!/bin/bash
 
-mirror=$(cat /etc/hpkg/mirrors/mirror.lst)
+ARGS=("$@")
+mirror=$ARGS
 
+function testmirror() {
+echo $mirror
+pingTest=`ping -c4 $mirror &>/dev/null`
 
-function testmirror () {
-
-for i in $mirror ; do ping -c4 $i; done }
-
-testmirror
-
-if [ $? -eq 0 ]; then
-    echo "Connected."
-
+if [ $? ==  0 ]; then
+    echo "true"
+    return 10
 else
-
-    echo "Mirror not found."
+    echo "false"
+    return 20
 fi
+}
 
-
+testmirror $mirror
 

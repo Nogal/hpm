@@ -49,6 +49,24 @@ def clean()
     puts "Cache Cleaned"
 end
 
+def test_mirror()
+    f = File.open("/etc/hpkg/mirrors/mirror.lst", "r")
+    f.each_line { |line|
+
+    tempstatus = `bash /bin/hpkg/resources/testmirror.sh #{line}` 
+    status = tempstatus.split
+
+    if status[-1] == "true" 
+        puts "Connected to #{line}"
+    elsif status[-1] == "false" 
+        puts "Error Connecting to #{line}"
+    else
+        puts "Fail!"
+    end
+    } 
+    f.close
+end
+
 def hpkgmv(packageName, source, dest)
     FileUtils.cd("/opt/hpkg/tmp/#{packageName}/")
     FileUtils.mv(source, dest)
@@ -218,5 +236,6 @@ case action
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
+    when "testmirror"; test_mirror
     else helpPage
 end
