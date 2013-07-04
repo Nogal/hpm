@@ -75,7 +75,7 @@ def hpkgmv(packageName, source, dest)
     # Move the package from the source (BIN_FILE from the .control file) 
     # to its destination (BIN_PATH from the .control file)
     FileUtils.cd("/opt/hpkg/tmp/#{packageName}/")
-    FileUtils.mv(source, dest)
+    FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{source}", dest)
 end
 
 def gethpkg(packageName, mirror)
@@ -93,7 +93,10 @@ end
 
 def exthpkg(packageName)
     # Extract the contents from the packaeg.
-    puts `tar -xf /opt/hpkg/tmp/#{packageName}.hpkg`
+    if packageName.include? ".hpkg"
+        packageName = packageName.chomp('.hpkg')
+    end
+    puts `tar -C /opt/hpkg/tmp/ -xf #{packageName}.hpkg`
 end
 
 def package_queue(packages)
@@ -195,29 +198,48 @@ def localinstall(packageName)
     # to the correct path, run the control script, and register the package
     # in the local database.
 
-    FileUtils.mv("#{packageName}", "/opt/hpkg/tmp/")
+    FileUtils.cp("#{packageName}", "/opt/hpkg/tmp/")
     exthpkg(packageName)
 
+    if packageName.include? ".hpkg"
+        packageName = packageName.chomp('.hpkg')
+    end
+
     # Open the control file and read the pertinent information.
+    data = []
     f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
-    data = f.read
+    f.each_line {|line| data.push line }
     f.close
-    binfile = data.match(/(?<=BIN_FILE: ).+$/)
-    binpath = data.match(/(?<=BIN_PATH: ).+$/)
-    conscript = data.match(/(?<=CONSCRIPT: ).+$/)
-    tempdeplist = data.match(/(?<=DEPLIST: ).+$/)
-    deplist = tempdeplist.split
-    pkgver = data.match(/(?<=PKGVER: ).+$/)
+    binfile = nil
+    binpath = nil
+    conscript = nil
+    pkgver = nil
+    data.each do |line| 
+        line.chomp 
+        if line.include? "BIN_FILE="
+            binfile = line.scan(/.+\=(.+$)/) 
+            binfile = binfile.join
+        elsif line.include? "BIN_PATH="
+            binpath = line.scan(/.+\=(.+$)/) 
+            binpath = binpath.join  
+        elsif line.include? "CONSCRIPT="
+            conscript = line.scan(/.+\=(.+$)/) 
+            conscript = conscript.join
+        elsif line.include? "PKGVER="
+            pkgver = line.scan(/.+\=(.+$)/) 
+            pkgver = pkgver.join
+        end
+    end
     desktopentry = "/opt/hpkg/tmp/#{packageName}/#{packageName}.desktop"
 
-    puts "Installing #{packagName}..."
+    puts "Installing #{packageName}..."
 
     # Move BIN_FILE to BIN_PATH from .control file.
+    puts "Moving: #{binfile} from /opt/hpkg/tmp/#{packageName}/#{binfile} to #{binpath}"
     hpkgmv(packageName, binfile, binpath)
-    puts "Moving: #{packageName} from #{binfile} to #{binpath}"
         
     # Run the control script
-    puts `#{conscript}`
+    #puts `#{conscript}`
 
     # Register packages within the database
     puts "Registering packages in database"
@@ -225,8 +247,7 @@ def localinstall(packageName)
             database.puts "#{packageName}.#{pkgver}" }
         
     FileUtils.mv(desktopentry, "/usr/share/applications/")
-    FileUtils.mv("/opt/hpkg/tmp/#{packageName}.control", "/etc/hpkg/controls/")
-    dbFile.close
+    FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "/etc/hpkg/controls/")
 end
 
 # Get input from the user by means of arguments passed along with the program.
@@ -253,13 +274,13 @@ case action
     when "remove"; packages.each {|package| remove(package)}
     when "source-install"; packages.each {|package| sourceinstall(package)}
     when "local-install"
-        package_queue(packages)
+#        package_queue(packages)
         puts "List of packages to be installed: "
-        puts packages
+#        puts packages
         puts "Proceed with installation? "
-        proceed = gets
-        proceed = proceed.chomp
-        if proceed == "Y" || proceed == "y"
+        STDOUT.flush
+        decision = STDIN.gets.chomp
+        if decision == "Y" || decision == "y"
         packages.each {|package| localinstall(package)}
         else
             puts "Aborting Installation"
