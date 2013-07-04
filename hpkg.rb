@@ -25,8 +25,8 @@
 require 'fileutils'
 
 def helpPage()
-    # A friendly little help page.
-
+    # A friendly little help page. This displays to the user whenever a
+    # user choses the "help" commmand, or any invalid command.
     puts "Usage"
     puts " hpkg (options) {package}"
     puts ""
@@ -44,12 +44,16 @@ def helpPage()
 end
 
 def clean()
+    # Cleans the cache by removing all files from /opt/hpkg/tmp/
     puts "Cleaning Cache: "
     FileUtils::Verbose.rm_rf("/opt/hpkg/tmp/*")
     puts "Cache Cleaned"
 end
 
 def test_mirror()
+    # Verifies connectivity to the mirrors chosen by the user. The list of 
+    # mirrors is stored in /etc/hpkg/mirrors/mirror.lst, with each mirror
+    # on their own line. Checks each mirror for a valid ping.
     f = File.open("/etc/hpkg/mirrors/mirror.lst", "r")
     f.each_line { |line|
 
@@ -68,26 +72,36 @@ def test_mirror()
 end
 
 def hpkgmv(packageName, source, dest)
+    # Move the package from the source (BIN_FILE from the .control file) 
+    # to its destination (BIN_PATH from the .control file)
     FileUtils.cd("/opt/hpkg/tmp/#{packageName}/")
     FileUtils.mv(source, dest)
 end
 
 def gethpkg(packageName, mirror)
+    # Download the package from the mirror
     puts `wget -c -0 /opt/hpkg/tmp/#{packageName}.hpkg #{mirror}/#{packageName}`
 end
 
-def checkFile( file, string )
-    # Check whether or not the string is within the contents of the file
-    File.open( file ) do |io|
-    io.each {|line| line.chomp! ; return true if line.include? string}
+def checkFile( db_file, package )
+    # Check whether or not the database contains the version of the package 
+    # requested by the user. If so, return "true"
+    File.open( db_file ) do |io|
+    io.each {|line| line.chomp! ; return true if line.include? package}
     end
 end
 
 def exthpkg(packageName)
+    # Extract the contents from the packaeg.
     puts `tar -xf /opt/hpkg/tmp/#{packageName}.hpkg`
 end
 
 def package_queue(packages)
+    # Resolve the dependencies. Check each package to be installed's control
+    # file for the list of dependencies. For each dependency, check whether 
+    # or not it is installed. If not, add it to the start of the list of 
+    # packages to be installed. Each time a new package is added to the list, 
+    # double check the list to ensure all missing dependencies are to be installed.
     packages.each do |packageName|
         # Open the control file and read the pertinent information.
         f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
@@ -111,7 +125,7 @@ def package_queue(packages)
 end
 
 def is_installed(packageName, pkgver)
-    #Query the database
+    #Query the database to check if the package is already installed on the system.
     puts "Checking #{packageName}..."
     dbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
     if checkFile(dbFile, "#{packageName}.#{pkgver}") == true
@@ -131,6 +145,12 @@ def sourceinstall(packageName)
 end
 
 def install(packageName)
+    # Install a package from a mirror. Open the .control file to obtain the
+    # necessary information for the package. Check for connectivity to the
+    # mirror, if so, download the package, extract it, move the exectuable
+    # to the correct path, run the control script, and register the package
+    # in the local database.
+
     # Open the control file and read the pertinent information.
     f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
     data = f.read
@@ -169,6 +189,12 @@ def install(packageName)
 end
 
 def localinstall(packageName)
+    # Install a package from a local file. Open the .control file to obtain the
+    # necessary information for the package. Check for connectivity to the
+    # mirror, if so, download the package, extract it, move the exectuable
+    # to the correct path, run the control script, and register the package
+    # in the local database.
+
     # Open the control file and read the pertinent information.
     f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
     data = f.read
@@ -200,7 +226,9 @@ def localinstall(packageName)
     dbFile.close
 end
 
-# Get argument values and set them to the variables:
+# Get input from the user by means of arguments passed along with the program.
+# The first argument following the command is considered the action in the
+# program. All subsequent arguments are considered to be packages.
 ARGV
 action = ARGV.shift
 packages = ARGV
@@ -236,6 +264,5 @@ case action
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
-    when "testmirror"; test_mirror
     else helpPage
 end
