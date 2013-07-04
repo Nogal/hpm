@@ -2,4 +2,4 @@ BIN_FILE=test_hpkg_binary
 BIN_PATH=/usr/bin/
 DEPLIST= 
 PKGVER=0.0.1
-CONSCRIPT=./buildscript.sh 
+CONSCRIPT=buildscript.sh 

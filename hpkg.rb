@@ -239,7 +239,8 @@ def localinstall(packageName)
     hpkgmv(packageName, binfile, binpath)
         
     # Run the control script
-    #puts `#{conscript}`
+    puts `chmod +x #{conscript}`
+    puts `./#{conscript}`
 
     # Register packages within the database
     puts "Registering packages in database"
