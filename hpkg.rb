@@ -195,7 +195,7 @@ def localinstall(packageName)
     # to the correct path, run the control script, and register the package
     # in the local database.
 
-    FileUtils.mv("./#{packageName}", "/opt/hpkg/tmp/")
+    FileUtils.mv("#{packageName}", "/opt/hpkg/tmp/")
     exthpkg(packageName)
 
     # Open the control file and read the pertinent information.
