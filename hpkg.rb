@@ -163,25 +163,43 @@ def install(packageName)
     exthpkg(packageName)
 
     # Open the control file and read the pertinent information.
+    data = []        
     f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
-    data = f.read
+    f.each_line {|line| data.push line }
     f.close
-    binfile = data.match(/(?<=BIN_FILE: ).+$/)
-    binpath = data.match(/(?<=BIN_PATH: ).+$/)
-    conscript = data.match(/(?<=CONSCRIPT: ).+$/)
-    tempdeplist = data.match(/(?<=DEPLIST: ).+$/)
-    deplist = tempdeplist.split
-    pkgver = data.match(/(?<=PKGVER: ).+$/)
+    binfile = nil
+    binpath = nil
+    conscript = nil
+    pkgver = nil
+    data.each do |line|
+        line.chomp
+        if line.include? "BIN_FILE="
+            binfile = line.scan)(/.+\=(.+$)/)
+            binfile = binfile.join
+        elsif line.include? "BIN_PATH="
+            binpath = line.scan)(/.+\=(.+$)/)
+            binpath = binpath.join
+        elsif line.include? "CONSCRIPT="
+            conscript = line.scan)(/.+\=(.+$)/)
+            conscript = conscript.join
+        elsif line.include? "PKGVER="
+            pkgver = line.scan)(/.+\=(.+$)/)
+            pkgver = pkgver.join
+        end
+    end
     desktopentry = "/opt/hpkg/tmp/#{packageName}/#{packageName}.desktop"
 
     puts "Installing #{packageName}..."
+
     # Move BIN_FILE to BIN_PATH from .control file.
+    puts "Moving: #{binfile} from /opt/hpkg/tmp/#{packageName}/#{binfile} to #{binpath}"
     hpkgmv(packageName, binfile, binpath)
-    puts "Moving: #{packageName} from #{binfile} to #{binpath}"
 
     # Run the control script
+    puts `chmod +x #{conscript}`
     puts `#{conscript}`
 
+    # Register package within the database
     puts "Registering packgages in database"
     open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database|
            database.puts "#{packageName}.#{pkgver}" }
@@ -189,7 +207,8 @@ def install(packageName)
     # Register packages within the database
     FileUtils.mv(desktopentry, "/usr/share/applications/")
     FileUtils.mv("/opt/hpkg/tmp/#{packageName}.control", "/etc/hpkg/controls/")
-    dbFile.close
+
+    puts `chmod +x #{binpath}/#{binfile}`
 end
 
 def localinstall(packageName)
