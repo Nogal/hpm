@@ -249,6 +249,8 @@ def localinstall(packageName)
         
     FileUtils.mv(desktopentry, "/usr/share/applications/")
     FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "/etc/hpkg/controls/")
+
+    puts `chmod +x #{binpath}/#{binfile}`
 end
 
 # Get input from the user by means of arguments passed along with the program.
