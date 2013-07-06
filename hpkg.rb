@@ -148,19 +148,9 @@ def sourceinstall(packageName)
 end
 
 def install(packageName)
-    # Install a package from a mirror. Check for connectivity to the
-    # mirror, if so, download the package, extract it. Open the .control file 
-    # to obtain the  necessary information for the package, move the exectuable
-    # to the correct path, run the control script, and register the package
-    # in the local database.
-
-    # mirror = # hmmm.
-    
-    # CHECK MIRROR STATUS ..... somehow
-
-    # Get the required packages and extract them
-    gethpkg(packageName, mirror)
-    exthpkg(packageName)
+    # Open the .control file # to obtain the  necessary information for the 
+    # package, move the exectuable to the correct path, run the control 
+    # script, and register the package # in the local database.
 
     # Open the control file and read the pertinent information.
     data = []        
@@ -211,11 +201,24 @@ def install(packageName)
     puts `chmod +x #{binpath}/#{binfile}`
 end
 
+def repoinstall(packageName)
+    # Install a package from a mirror. Check for connectivity to the
+    # mirror, if so, download the package, extract it. Install package.
+
+    # mirror = # hmmm.
+    
+    # CHECK MIRROR STATUS ..... somehow
+
+    # Get the required packages and extract them
+    gethpkg(packageName, mirror)
+    exthpkg(packageName)
+
+    install(packageName)
+end
+
 def localinstall(packageName)
-    # Install a package from a local sourc. Extract it. Open the .control file 
-    # to obtain the  necessary information for the package, move the exectuable
-    # to the correct path, run the control script, and register the package
-    # in the local database.
+    # Install a package from a local sourc. Extract it. Clean Input, and
+    # install the package. 
 
     FileUtils.cp("#{packageName}", "/opt/hpkg/tmp/")
     exthpkg(packageName)
@@ -224,52 +227,7 @@ def localinstall(packageName)
         packageName = packageName.chomp('.hpkg')
     end
 
-    # Open the control file and read the pertinent information.
-    data = []
-    f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
-    f.each_line {|line| data.push line }
-    f.close
-    binfile = nil
-    binpath = nil
-    conscript = nil
-    pkgver = nil
-    data.each do |line| 
-        line.chomp 
-        if line.include? "BIN_FILE="
-            binfile = line.scan(/.+\=(.+$)/) 
-            binfile = binfile.join
-        elsif line.include? "BIN_PATH="
-            binpath = line.scan(/.+\=(.+$)/) 
-            binpath = binpath.join  
-        elsif line.include? "CONSCRIPT="
-            conscript = line.scan(/.+\=(.+$)/) 
-            conscript = conscript.join
-        elsif line.include? "PKGVER="
-            pkgver = line.scan(/.+\=(.+$)/) 
-            pkgver = pkgver.join
-        end
-    end
-    desktopentry = "/opt/hpkg/tmp/#{packageName}/#{packageName}.desktop"
-
-    puts "Installing #{packageName}..."
-
-    # Move BIN_FILE to BIN_PATH from .control file.
-    puts "Moving: #{binfile} from /opt/hpkg/tmp/#{packageName}/#{binfile} to #{binpath}"
-    hpkgmv(packageName, binfile, binpath)
-        
-    # Run the control script
-    puts `chmod +x #{conscript}`
-    puts `./#{conscript}`
-
-    # Register packages within the database
-    puts "Registering packages in database"
-    open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database|
-            database.puts "#{packageName}.#{pkgver}" }
-        
-    FileUtils.mv(desktopentry, "/usr/share/applications/")
-    FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "/etc/hpkg/controls/")
-
-    puts `chmod +x #{binpath}/#{binfile}`
+    install(packageName)
 end
 
 # Get input from the user by means of arguments passed along with the program.
@@ -282,14 +240,14 @@ packages = ARGV
 # Decide which course of action to take
 case action
     when "install"
-        package_queue(packages)
+#        package_queue(packages)
         puts "List of packages to be installed: "
         puts packages
         puts "Proceed with installation? "
-        proceed = gets
-        proceed = proceed.chomp
+        STDOUT.flush
+        decision = STDIN.gets.chomp
         if proceed == "Y" || proceed == "y"
-            packages.each {|package| install(package)}
+            packages.each {|package| repoinstall(package)}
         else
             puts "Aborting Installation"
         end
@@ -298,7 +256,7 @@ case action
     when "local-install"
 #        package_queue(packages)
         puts "List of packages to be installed: "
-#        puts packages
+        puts packages
         puts "Proceed with installation? "
         STDOUT.flush
         decision = STDIN.gets.chomp
