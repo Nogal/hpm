@@ -140,6 +140,43 @@ def is_installed(packageName, pkgver)
     end
 end
 
+def update()
+    #              ######   THIS IS IN PROTOTYPE FORM     #########
+    # Build  a master local database which contains packgae information
+    # available for a "show" type command as well as information for
+    # the dependency resolution of the install process.
+    
+    mirrors = []
+    mirrorfile = File.open("/etc/hpkg/mirrors/mirror.lst", "r")
+    mirrorfile.each_line {|line| mirrorList.push line }
+    mirrorfile.close
+    
+    newDatabase = File.open("/etc/hpkg/pkginfo/newDatabase.info", "r")
+    newDatabaseInfo = []
+
+    mirrors.each do |mirror|
+        mirror.chomp
+        puts `wget -c -0 /etc/hpkg/pkginfo/newDatabaseInfo.info #{mirror}/package_database/package_database.info`
+        newDatabaseInfoFile = File.open("/etc/hpkg/pkginfo/newDatabaseInfo.info", "r")
+        newDatabaseInfoFile.each_line {|line| newDatabaseInfo.push line }
+
+        newDatabaseInfo.each do |line|
+            line.chomp
+            if line.include? "HPKGNAME="
+                nameinfo = line.scan(/.+\=(.+$)/) 
+            
+
+                if not newDatabase.include? nameinfo
+                    # do some tricky shit
+                else
+                    newDatabase.puts "HPKG=#{nameinfo}"
+                end
+            end
+        end
+        newDatabaseInfo.close
+    end
+    newDatabase.close
+end
 def sourceinstall(packageName)
     # Do some mirror magic...
 
