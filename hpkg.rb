@@ -26,7 +26,7 @@ require 'fileutils'
 
 def helpPage()
     # A friendly little help page. This displays to the user whenever a
-    # user choses the "help" commmand, or any invalid command.
+    # user chooses the "help" commmand, or any invalid command.
     puts "Usage"
     puts " hpkg (options) {package}"
     puts ""
@@ -93,9 +93,6 @@ end
 
 def exthpkg(packageName)
     # Extract the contents from the packaeg.
-    if packageName.include? ".hpkg"
-        packageName = packageName.chomp('.hpkg')
-    end
     puts `tar -C /opt/hpkg/tmp/ -xf #{packageName}.hpkg`
 end
 
@@ -258,11 +255,12 @@ def localinstall(packageName)
     # install the package. 
 
     FileUtils.cp("#{packageName}", "/opt/hpkg/tmp/")
-    exthpkg(packageName)
 
     if packageName.include? ".hpkg"
         packageName = packageName.chomp('.hpkg')
     end
+
+    exthpkg(packageName)
 
     install(packageName)
 end
