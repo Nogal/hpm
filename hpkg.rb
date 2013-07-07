@@ -155,31 +155,30 @@ def update()
     mirrors.each do |mirror|
         mirror.chomp
         puts `wget -c -0 /etc/hpkg/pkginfo/newDatabaseInfo.info #{mirror}/package_database/package_database.info`
-        newDatabaseInfoFile = IO.readlines("/etc/hpkg/pkginfo/newDatabaseInfo.info")
-        databaseInfoCheck = newDatabaseInfoFile
+        newDatabaseInfo = IO.readlines("/etc/hpkg/pkginfo/newDatabaseInfo.info")
 
         newDatabaseInfo.each do |line|
             i = newDatabaseInfo.index(line)
             line.chomp
             if line.include? "HPKGNAME="
-                nameinfo = line.scan(/.+\=(.+$)/) 
+                nameinfo = line
                 i = i + 1
-                versioninfo = newDatabaseInfo[i].scan(/.+\=(.+$/) 
+                versioninfo = newDatabaseInfo[i]
                 versioninfo = versioninfo.chomp
                 i = i + 1
-                archinfo = newDatabaseInfo[i].scan(/.+\=(.+$/) 
+                archinfo = newDatabaseInfo[i]
                 archinfo = archinfo.chomp
                 i = i + 1
-                depinfo = newDatabaseInfo[i].scan(/.+\=(.+$/) 
+                depinfo = newDatabaseInfo[i]
                 depinfo = depinfo.chomp
                 i = i + 1
-                hashinfo = newDatabaseInfo[i].scan(/.+\=(.+$/) 
+                hashinfo = newDatabaseInfo[i]
                 hashinfo = hashinfo.chmop
                 i = i + 1
-                summaryinfo = newDatabaseInfo[i].scan(/.+\=(.+$/) 
+                summaryinfo = newDatabaseInfo[i]
                 summaryinfo = summaryinfo.chomp
 
-                if newDatabase.include? nameinfo
+                if hpkgDatabase.include? nameinfo
                     # do some tricky shit
                 else
                     hpkgDatabase.push(nameinfo, versioninfo, archinfo, depinfo, summaryinfo)
