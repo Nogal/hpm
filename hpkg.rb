@@ -213,11 +213,46 @@ def update()
                 end
             end
         end
-        hpkgDatabaseFile = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "w")
-        hpkgDatabaseFile.puts  $hpkgDatabase
-        hpkgDatabaseFile.close
     end
+    hpkgDatabaseFile = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "w")
+    hpkgDatabaseFile.puts  $hpkgDatabase
+    hpkgDatabaseFile.close
+
+    # Check if the current version is the same as the version available from the repo,
+    # if not, add it to a file which can be called to in the upgrade function
+    
+    $updateDatabase = []
+
+    pkdbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
+    pkdbFile.each_with_index do |line, pkdbIndex|
+        installedPackageName = line.scan(/(.+)\\/)
+        installedPackageName = installedPackageName.join
+        installedPackageVersion = line.scan(/.+\\(.+$)/)
+        installedPackageVersion = installedPackageVersion.join
+        $hpkgDatabase.each_with_index do |repoEntry, repoIndex|
+            if repoEntry.include? installedPackageName
+                repoCheckCounter = repoIndex
+                7.times do
+                    if not $hpkgDatabase[repoCheckCounter] == nil
+                        if $hpkgDatabase[repoCheckCounter].include? "PKGVER="
+                            if not $hpkgDatabase[repoCheckCounter].include? "HPKGVER="
+                                repoCheckVersion = $hpkgDatabase[repoCheckCounter].scan(/.+\=(.+$)/)
+                                if repoCheckVersion != installedPackageVersion
+                                    $updateDatabase.push(installedPackageName)
+                                end
+                            end
+                        end
+                    end
+                    repoCheckCounter = repoCheckCounter + 1
+                end
+            end
+        end
+    end
+    updateDatabaseFile = File.open("/etc/hpkg/pkginfo/updateDatabase.info", "w")
+    updateDatabaseFile.puts $updateDatabase
+    updateDatabaseFile.close
 end
+
 def sourceinstall(packageName)
     # Do some mirror magic...
 
@@ -265,16 +300,16 @@ def install(packageName)
 
     # Run the control script
     puts `chmod +x #{conscript}`
-    puts `#{conscript}`
+    puts `/opt/hpkg/tmp/#{packageName}/#{conscript}`
 
     # Register package within the database
     puts "Registering packgages in database"
     open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database|
-           database.puts "#{packageName}.#{pkgver}" }
+           database.puts "#{packageName}\\#{pkgver}" }
            
     # Register packages within the database
     FileUtils.mv(desktopentry, "/usr/share/applications/")
-    FileUtils.mv("/opt/hpkg/tmp/#{packageName}.control", "/etc/hpkg/controls/")
+    FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "/etc/hpkg/controls/")
 
     puts `chmod +x #{binpath}/#{binfile}`
 end
