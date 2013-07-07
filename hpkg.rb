@@ -137,68 +137,93 @@ def is_installed(packageName, pkgver)
     end
 end
 
+def update_database(hpkgDatabase, hpkgversioninfo, dbEntry)
+    checkCounter = hpkgDatabase.index(dbEntry)
+    databaseCounter = hpkgDatabase.index(dbEntry)
+    7.times do
+        if hpkgDatabase(checkCounter).include? "HPKGVER="
+            checkVersion = line.scan(/.+\=(.+$)/)
+            if checkVersion > hpkgversioninfo
+                8.times do
+                    hpkgDatabase.delete_at(databaseCounter)
+                    databaseCounter = databaseCounter + 1
+                end
+            hpkgDatabase.push(nameinfo, hpkgversioninfo, versioninfo, archinfo, depinfo, hashinfo, summaryinfo, "")
+            f = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "a") 
+            f.puts hpkgDatabase
+            f.close
+            end
+        end
+    end
+    checkCounter = checkCounter + 1
+end
+
 def update()
     #              ######   THIS IS IN PROTOTYPE FORM     #########
     # Build  a master local database which contains packgae information
     # available for a "show" type command as well as information for
     # the dependency resolution of the install process.
+
+    f = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "w")
+    f.puts ""
+    f.close
     
     mirrors = []
     mirrorfile = File.open("/etc/hpkg/mirrors/mirror.lst", "r")
-    mirrorfile.each_line {|line| mirrors.push line }
+    mirrorfile.each_line {|line| mirrors.push line.chomp }
     mirrorfile.close
    
-    newDatabase = IO.readlines("/etc/hpkg/pkginfo/newDatabase.info")
-    hpkgDatabase = [] 
-    newDatabaseInfo = []
+    newDatabase = []
 
     mirrors.each do |mirror|
         mirror.chomp
-        puts `wget -c -0 /etc/hpkg/pkginfo/newDatabaseInfo.info #{mirror}/package_database/package_database.info`
-        newDatabaseInfo = IO.readlines("/etc/hpkg/pkginfo/newDatabaseInfo.info")
+#        puts `wget -c -0 /etc/hpkg/pkginfo/newDatabase.info #{mirror}/package_database/package_database.info`
+        newDatabase = IO.readlines("/etc/hpkg/pkginfo/newDatabase.info")
+        hpkgDatabase = [] 
 
-        newDatabaseInfo.each do |line|
-            i = newDatabaseInfo.index(line)
+        newDatabase.each do |line|
+            i = newDatabase.index(line)
             line.chomp
             if line.include? "HPKGNAME="
                 nameinfo = line
                 i = i + 1
-                versioninfo = newDatabaseInfo[i]
+                hpkgversioninfo = newDatabase[i]
+                hpkgversioninfo = hpkgversioninfo.chomp
+                i = i + 1
+                versioninfo = newDatabase[i]
                 versioninfo = versioninfo.chomp
                 i = i + 1
-                archinfo = newDatabaseInfo[i]
+                archinfo = newDatabase[i]
                 archinfo = archinfo.chomp
                 i = i + 1
-                depinfo = newDatabaseInfo[i]
+                depinfo = newDatabase[i]
                 depinfo = depinfo.chomp
                 i = i + 1
-                hashinfo = newDatabaseInfo[i]
-                hashinfo = hashinfo.chmop
+                hashinfo = newDatabase[i]
+                hashinfo = hashinfo.chomp
                 i = i + 1
-                summaryinfo = newDatabaseInfo[i]
+                summaryinfo = newDatabase[i]
                 summaryinfo = summaryinfo.chomp
 
+                # ok kids... here's where things get complicated.
+                # check if the current database entry includes the package, if so, 
+                # check if the new database entry's package is at a newer version.
+                # If so, delete that entry and enter a new one, if not, do nothing. 
                 if hpkgDatabase.include? nameinfo
                     hpkgDatabase.each do |dbEntry|
                         if dbEntry.include? nameinfo
-                            checkCounter = hpkgDatabase.index(dbEntry)
-                            5.times do
-                                if hpkgDatabase(checkCounter).include? "PKGVER="
-                                    checkVersion = line.scan(/.+\=(.+$)/)
-                                    # Do some tricky shit
-                                end
-                            end
+                            update_database(hpkgDatabase, hpkgversioninfo, dbEntry)
                         end
                     end
                 else
-                    hpkgDatabase.push(nameinfo, versioninfo, archinfo, depinfo, summaryinfo)
+                    hpkgDatabase.push(nameinfo, hpkgversioninfo, versioninfo, archinfo, depinfo, hashinfo, summaryinfo, "")
+                    f = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "a") 
+                    f.puts hpkgDatabase
+                    f.close
                 end
             end
         end
     end
-    f = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "w") 
-    f.puts hpkgDatabase
-    f.close
 end
 
 def sourceinstall(packageName)
