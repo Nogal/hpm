@@ -145,35 +145,50 @@ def update()
     
     mirrors = []
     mirrorfile = File.open("/etc/hpkg/mirrors/mirror.lst", "r")
-    mirrorfile.each_line {|line| mirrorList.push line }
+    mirrorfile.each_line {|line| mirrors.push line }
     mirrorfile.close
-    
-    newDatabase = File.open("/etc/hpkg/pkginfo/newDatabase.info", "r")
+   
+    newDatabase = IO.readlines("/etc/hpkg/pkginfo/newDatabase.info")
+    hpkgDatabase = [] 
     newDatabaseInfo = []
 
     mirrors.each do |mirror|
         mirror.chomp
         puts `wget -c -0 /etc/hpkg/pkginfo/newDatabaseInfo.info #{mirror}/package_database/package_database.info`
-        newDatabaseInfoFile = File.open("/etc/hpkg/pkginfo/newDatabaseInfo.info", "r")
-        newDatabaseInfoFile.each_line {|line| newDatabaseInfo.push line }
+        newDatabaseInfoFile = IO.readlines("/etc/hpkg/pkginfo/newDatabaseInfo.info")
+        databaseInfoCheck = newDatabaseInfoFile
 
         newDatabaseInfo.each do |line|
+            i = newDatabaseInfo.index(line)
             line.chomp
             if line.include? "HPKGNAME="
                 nameinfo = line.scan(/.+\=(.+$)/) 
-            
+                i = i + 1
+                versioninfo = newDatabaseInfo[i].scan(/.+\=(.+$/) 
+                versioninfo = versioninfo.chomp
+                i = i + 1
+                archinfo = newDatabaseInfo[i].scan(/.+\=(.+$/) 
+                archinfo = archinfo.chomp
+                i = i + 1
+                depinfo = newDatabaseInfo[i].scan(/.+\=(.+$/) 
+                depinfo = depinfo.chomp
+                i = i + 1
+                hashinfo = newDatabaseInfo[i].scan(/.+\=(.+$/) 
+                hashinfo = hashinfo.chmop
+                i = i + 1
+                summaryinfo = newDatabaseInfo[i].scan(/.+\=(.+$/) 
+                summaryinfo = summaryinfo.chomp
 
-                if not newDatabase.include? nameinfo
+                if newDatabase.include? nameinfo
                     # do some tricky shit
                 else
-                    newDatabase.puts "HPKG=#{nameinfo}"
+                    hpkgDatabase.push(nameinfo, versioninfo, archinfo, depinfo, summaryinfo)
                 end
             end
         end
-        newDatabaseInfo.close
     end
-    newDatabase.close
 end
+
 def sourceinstall(packageName)
     # Do some mirror magic...
 
