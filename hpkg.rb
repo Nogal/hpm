@@ -137,95 +137,104 @@ def is_installed(packageName, pkgver)
     end
 end
 
-def update_database(hpkgDatabase, hpkgversioninfo, dbEntry)
-    checkCounter = hpkgDatabase.index(dbEntry)
-    databaseCounter = hpkgDatabase.index(dbEntry)
-    7.times do
-        if hpkgDatabase(checkCounter).include? "HPKGVER="
-            checkVersion = line.scan(/.+\=(.+$)/)
-            if checkVersion > hpkgversioninfo
-                8.times do
-                    hpkgDatabase.delete_at(databaseCounter)
-                    databaseCounter = databaseCounter + 1
-                end
-            hpkgDatabase.push(nameinfo, hpkgversioninfo, versioninfo, archinfo, depinfo, hashinfo, summaryinfo, "")
-            f = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "a") 
-            f.puts hpkgDatabase
-            f.close
-            end
-        end
-    end
-    checkCounter = checkCounter + 1
-end
-
 def update()
     #              ######   THIS IS IN PROTOTYPE FORM     #########
     # Build  a master local database which contains packgae information
     # available for a "show" type command as well as information for
     # the dependency resolution of the install process.
 
-    f = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "w")
+    f = File.open("/etc/hpkg/pkginfo/$hpkgDatabase.info", "w")
     f.puts ""
     f.close
     
-    mirrors = []
-    mirrorfile = File.open("/etc/hpkg/mirrors/mirror.lst", "r")
-    mirrorfile.each_line {|line| mirrors.push line.chomp }
-    mirrorfile.close
+#    mirrors = []
+#    mirrorfile = File.open("/etc/hpkg/mirrors/mirror.lst", "r")
+#    mirrorfile.each_line {|line| mirrors.push line.chomp }
+#    mirrorfile.close
    
     newDatabase = []
 
-    mirrors.each do |mirror|
-        mirror.chomp
+#    mirrors.each do |mirror|
+#        mirror.chomp
 #        puts `wget -c -0 /etc/hpkg/pkginfo/newDatabase.info #{mirror}/package_database/package_database.info`
-        newDatabase = IO.readlines("/etc/hpkg/pkginfo/newDatabase.info")
-        hpkgDatabase = [] 
+    newDatabase = IO.readlines("/etc/hpkg/pkginfo/newDatabase.info")
+    $hpkgDatabase = [] 
 
-        newDatabase.each do |line|
-            i = newDatabase.index(line)
-            line.chomp
-            if line.include? "HPKGNAME="
-                nameinfo = line
-                i = i + 1
-                hpkgversioninfo = newDatabase[i]
-                hpkgversioninfo = hpkgversioninfo.chomp
-                i = i + 1
-                versioninfo = newDatabase[i]
-                versioninfo = versioninfo.chomp
-                i = i + 1
-                archinfo = newDatabase[i]
-                archinfo = archinfo.chomp
-                i = i + 1
-                depinfo = newDatabase[i]
-                depinfo = depinfo.chomp
-                i = i + 1
-                hashinfo = newDatabase[i]
-                hashinfo = hashinfo.chomp
-                i = i + 1
-                summaryinfo = newDatabase[i]
-                summaryinfo = summaryinfo.chomp
+    newDatabase.each do |line|
+        i = newDatabase.index(line)
+        line.chomp
+        if line.include? "HPKGNAME="
+            nameinfo = line.chomp
+            i = i + 1
+            $hpkgversioninfo = newDatabase[i]
+            $hpkgversioninfo = $hpkgversioninfo.chomp
+            i = i + 1
+            versioninfo = newDatabase[i]
+            versioninfo = versioninfo.chomp
+            i = i + 1
+            archinfo = newDatabase[i]
+            archinfo = archinfo.chomp
+            i = i + 1
+            depinfo = newDatabase[i]
+            depinfo = depinfo.chomp
+            i = i + 1
+            hashinfo = newDatabase[i]
+            hashinfo = hashinfo.chomp
+            i = i + 1
+            summaryinfo = newDatabase[i]
+            summaryinfo = summaryinfo.chomp
 
-                # ok kids... here's where things get complicated.
-                # check if the current database entry includes the package, if so, 
-                # check if the new database entry's package is at a newer version.
-                # If so, delete that entry and enter a new one, if not, do nothing. 
-                if hpkgDatabase.include? nameinfo
-                    hpkgDatabase.each do |dbEntry|
-                        if dbEntry.include? nameinfo
-                            update_database(hpkgDatabase, hpkgversioninfo, dbEntry)
+            # ok kids... here's where things get complicated.
+            # check if the current database entry includes the package, if so, 
+            # check if the new database entry's package is at a newer version.
+            # If so, delete that entry and enter a new one, if not, do nothing. 
+            if $hpkgDatabase.include? nameinfo
+                $hpkgDatabase.each do |dbEntry|
+                    if dbEntry.include? nameinfo
+                        checkCounter = $hpkgDatabase.index(dbEntry)
+                        databaseCounter = $hpkgDatabase.index(dbEntry)
+                        7.times do
+                            puts $hpkgDatabase[checkCounter]
+                            if $hpkgDatabase[checkCounter].include? "HPKGVER="
+                                checkVersion = nil
+                                getCheckVersion= $hpkgDatabase.index(line) 
+                                7.times do
+            #                        puts "THIS IS THE TEST: #{$hpkgDatabase[getCheckVersion]}"
+                                    if $hpkgDatabase[getCheckVersion].include? "HPKGVER="
+                                        checkVersion = $hpkgDatabase[getCheckVersion].scan(/.+\=(.+$)/)
+                                        checkVersion = checkVersion.join
+                                    end 
+                                    getCheckVersion = getCheckVersion + 1
+                                end
+                                hpkgCheckVersion = $hpkgversioninfo.scan(/.+\=(.+$)/)
+                                hpkgCheckVersion = hpkgCheckVersion.join
+                                puts checkVersion
+                                puts hpkgCheckVersion
+                                if checkVersion > hpkgCheckVersion
+                                    8.times do
+                                        $hpkgDatabase.delete_at(databaseCounter)
+                                        puts "deleted line"
+                                        databaseCounter = databaseCounter + 1
+                                    end
+                #            puts "Sample Database: #{$hpkgDatbase}"
+                                $hpkgDatabase.push(nameinfo, $hpkgversioninfo, versioninfo, archinfo, depinfo, hashinfo, summaryinfo, "")
+                                checkCounter = checkCounter + 1
+                                end
+                            end
                         end
                     end
-                else
-                    hpkgDatabase.push(nameinfo, hpkgversioninfo, versioninfo, archinfo, depinfo, hashinfo, summaryinfo, "")
-                    f = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "a") 
-                    f.puts hpkgDatabase
-                    f.close
                 end
+            else
+                $hpkgDatabase.push(nameinfo, $hpkgversioninfo, versioninfo, archinfo, depinfo, hashinfo, summaryinfo, "")
+                puts "Sample database: #{$hpkgDatabase}"
             end
+            f = File.open("/etc/hpkg/pkginfo/$hpkgDatabase.info", "w") 
+            puts "Sample database: #{$hpkgDatabase}"
+            f.puts $hpkgDatabase
+            f.close
         end
     end
 end
-
 def sourceinstall(packageName)
     # Do some mirror magic...
 
