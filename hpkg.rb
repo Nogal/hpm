@@ -97,42 +97,60 @@ def exthpkg(packageName)
 end
 
 def package_queue(packages)
-    # Resolve the dependencies. Check each package to be installed's control
-    # file for the list of dependencies. For each dependency, check whether 
+    # Resolve the dependencies. Check each package to be installed's in the
+    # database for the list of dependencies. For each dependency, check whether 
     # or not it is installed. If not, add it to the start of the list of 
     # packages to be installed. Each time a new package is added to the list, 
     # double check the list to ensure all missing dependencies are to be installed.
     packages.each do |packageName|
         # Open the control file and read the pertinent information.
-        f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
-        data = f.read
-        f.close
-        tempdeplist = data.match(/(?<=DEPLIST: ).+$/)
-        deplist = tempdeplist.split
-        pkgver = data.match(/(?<=PKGVER: ).+$/)
-    
-        if deplist.empty? == false
-            deplist.each {|dependency|
-               if is_installed(packageName, pkgver) == false
-                    if !packages.include?(dependency)
-                        packages = dependency + packages
-                        package_queue(packages)
+        database = IO.readlines("/etc/hpkg/pkginfo/hpkgDatabase.info")
+        deplist = []
+        pkgver = nil
+
+        database.each_with_index do |line, databaseIndex|
+            if line.include? "HPKGNAME=#{packageName}"
+                checkCounter = databaseIndex
+                7.times do
+                    if database[checkCounter] != nil
+                        if database[checkCounter].include? "DEPLIST="
+                            deplist = database[checkCounter].scan(/.+\=(.+$)/)
+                            deplist = deplist.join
+                            deplist = deplist.split
+                        end
+                    end
+                    if database[checkCounter] != nil
+                        if database[checkCounter].include? "PKGVER="
+                            if not database[checkCounter].include? "HPKGVER="
+                                pkgver = database[checkCounter].scan(/.+\=(.+$)/)
+                            end
+                        end
+                    end
+                    checkCounter = checkCounter + 1
+                end
+                if deplist.empty? == false
+                    deplist.each do |dependency|
+                        if is_installed(packageName, pkgver) == false
+                            if not packages.include?(dependency)
+                                packages.unshift(dependency)
+                                package_queue(packages)
+                            end
+                        end
                     end
                 end
-            }
+            end
         end
     end
+    packageList = packages.join(" ")
+    puts "Packages to be installed: #{packageList}"
 end
 
 def is_installed(packageName, pkgver)
     #Query the database to check if the package is already installed on the system.
-    puts "Checking #{packageName}..."
     dbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
     if checkFile(dbFile, "#{packageName}.#{pkgver}") == true
-        puts "Package already installed"
         return true
     else
-        puts "#{packageName} is to be installed."
         return false
     end
 end
@@ -382,5 +400,6 @@ case action
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
+    when "test"; package_queue(packages)
     else helpPage
 end
