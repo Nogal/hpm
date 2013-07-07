@@ -179,13 +179,26 @@ def update()
                 summaryinfo = summaryinfo.chomp
 
                 if hpkgDatabase.include? nameinfo
-                    # do some tricky shit
+                    hpkgDatabase.each do |dbEntry|
+                        if dbEntry.include? nameinfo
+                            checkCounter = hpkgDatabase.index(dbEntry)
+                            5.times do
+                                if hpkgDatabase(checkCounter).include? "PKGVER="
+                                    checkVersion = line.scan(/.+\=(.+$)/)
+                                    # Do some tricky shit
+                                end
+                            end
+                        end
+                    end
                 else
                     hpkgDatabase.push(nameinfo, versioninfo, archinfo, depinfo, summaryinfo)
                 end
             end
         end
     end
+    f = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "w") 
+    f.puts hpkgDatabase
+    f.close
 end
 
 def sourceinstall(packageName)
@@ -212,16 +225,16 @@ def install(packageName)
     data.each do |line|
         line.chomp
         if line.include? "BIN_FILE="
-            binfile = line.scan)(/.+\=(.+$)/)
+            binfile = line.scan(/.+\=(.+$)/)
             binfile = binfile.join
         elsif line.include? "BIN_PATH="
-            binpath = line.scan)(/.+\=(.+$)/)
+            binpath = line.scan(/.+\=(.+$)/)
             binpath = binpath.join
         elsif line.include? "CONSCRIPT="
-            conscript = line.scan)(/.+\=(.+$)/)
+            conscript = line.scan(/.+\=(.+$)/)
             conscript = conscript.join
         elsif line.include? "PKGVER="
-            pkgver = line.scan)(/.+\=(.+$)/)
+            pkgver = line.scan(/.+\=(.+$)/)
             pkgver = pkgver.join
         end
     end
