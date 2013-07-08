@@ -114,15 +114,16 @@ def package_queue(packages)
                 7.times do
                     if database[checkCounter] != nil
                         if database[checkCounter].include? "DEPLIST="
-                            deplist = database[checkCounter].scan(/.+\=(.+$)/)
+                            deplist = database[checkCounter].scan(/DEPLIST=(.+$)/)
                             deplist = deplist.join
                             deplist = deplist.split
+                            puts deplist
                         end
                     end
                     if database[checkCounter] != nil
                         if database[checkCounter].include? "PKGVER="
                             if not database[checkCounter].include? "HPKGVER="
-                                pkgver = database[checkCounter].scan(/.+\=(.+$)/)
+                                pkgver = database[checkCounter].scan(/=(.+$)/)
                             end
                         end
                     end
@@ -211,9 +212,9 @@ def update()
                             7.times do
                                 if $hpkgDatabase[checkCounter].include? "HPKGVER="
                                     checkVersion = ""
-                                    checkVersion = hpkgversioninfo.scan(/.+\=(.+$)/)
+                                    checkVersion = hpkgversioninfo.scan(/HPKGVER=(.+$)/)
                                     checkVersion = checkVersion.join
-                                    hpkgCheckVersion = $hpkgDatabase[checkCounter].scan(/.+\=(.+$)/)
+                                    hpkgCheckVersion = $hpkgDatabase[checkCounter].scan(/HPKGVER=(.+$)/)
                                     hpkgCheckVersion = hpkgCheckVersion.join
                                     if checkVersion > hpkgCheckVersion
                                         8.times do
@@ -254,7 +255,7 @@ def update()
                     if not $hpkgDatabase[repoCheckCounter] == nil
                         if $hpkgDatabase[repoCheckCounter].include? "PKGVER="
                             if not $hpkgDatabase[repoCheckCounter].include? "HPKGVER="
-                                repoCheckVersion = $hpkgDatabase[repoCheckCounter].scan(/.+\=(.+$)/)
+                                repoCheckVersion = $hpkgDatabase[repoCheckCounter].scan(/PKGVER=(.+$)/)
                                 if repoCheckVersion != installedPackageVersion
                                     $updateDatabase.push(installedPackageName)
                                 end
@@ -295,16 +296,16 @@ def install(packageName)
     data.each do |line|
         line.chomp
         if line.include? "BIN_FILE="
-            binfile = line.scan(/.+\=(.+$)/)
+            binfile = line.scan(/BIN_FILE=(.+$)/)
             binfile = binfile.join
         elsif line.include? "BIN_PATH="
-            binpath = line.scan(/.+\=(.+$)/)
+            binpath = line.scan(/BIN_PATH=(.+$)/)
             binpath = binpath.join
         elsif line.include? "CONSCRIPT="
-            conscript = line.scan(/.+\=(.+$)/)
+            conscript = line.scan(/CONSCRIPT=(.+$)/)
             conscript = conscript.join
         elsif line.include? "PKGVER="
-            pkgver = line.scan(/.+\=(.+$)/)
+            pkgver = line.scan(/PKGVER=(.+$)/)
             pkgver = pkgver.join
         end
     end
