@@ -46,7 +46,7 @@ end
 def clean()
     # Cleans the cache by removing all files from /opt/hpkg/tmp/
     puts "Cleaning Cache: "
-    FileUtils::Verbose.rm_rf("/opt/hpkg/tmp/*")
+    FileUtils::Verbose.rm_rf(Dir.glob("/opt/hpkg/tmp/*"))
     puts "Cache Cleaned"
 end
 
