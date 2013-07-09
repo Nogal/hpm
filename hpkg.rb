@@ -93,7 +93,7 @@ end
 
 def exthpkg(packageName)
     # Extract the contents from the packaeg.
-    puts `tar -C /opt/hpkg/tmp/ -xf #{packageName}.hpkg`
+    puts `tar -C /opt/hpkg/tmp/ -xjf #{packageName}.hpkg`
 end
 
 def package_queue(packages)
@@ -175,28 +175,39 @@ def update()
         $hpkgDatabase = [] 
     
         newDatabase.each_with_index do |line, newDatabaseIndex|
-            i = newDatabaseIndex
+            i = newDatabaseIndex + 1
             line.chomp
             if line.include? "HPKGNAME="
                 nameinfo = line.chomp
+                6.times do
+                if newDatabase[i].include? "HPKGVER="
+                    hpkgversioninfo = newDatabase[i]
+                    hpkgversioninfo = hpkgversioninfo.chomp
+                end
+                if newDatabase[i].include? "PKGVER="
+                    if not newDatabase[i].include? "HPKGVER="
+                        versioninfo = newDatabase[i]
+                        versioninfo = versioninfo.chomp
+                    end
+                end
+                if newDatabase[i].include? "ARCH="
+                    archinfo = newDatabase[i]
+                    archinfo = archinfo.chomp
+                end
+                if newDatabase[i].include? "DEPLIST="
+                    depinfo = newDatabase[i]
+                    depinfo = depinfo.chomp
+                end
+                if newDatabase[i].include? "HASH="
+                    hashinfo = newDatabase[i]
+                    hashinfo = hashinfo.chomp
+                end
+                if newDatabase[i].include? "SUMMARY="
+                    summaryinfo = newDatabase[i]
+                    summaryinfo = summaryinfo.chomp
+                end
                 i = i + 1
-                hpkgversioninfo = newDatabase[i]
-                hpkgversioninfo = hpkgversioninfo.chomp
-                i = i + 1
-                versioninfo = newDatabase[i]
-                versioninfo = versioninfo.chomp
-                i = i + 1
-                archinfo = newDatabase[i]
-                archinfo = archinfo.chomp
-                i = i + 1
-                depinfo = newDatabase[i]
-                depinfo = depinfo.chomp
-                i = i + 1
-                hashinfo = newDatabase[i]
-                hashinfo = hashinfo.chomp
-                i = i + 1
-                summaryinfo = newDatabase[i]
-                summaryinfo = summaryinfo.chomp
+            end
     
                 # ok kids... here's where things get complicated.
                 # check if the current database entry includes the package, if so, 
