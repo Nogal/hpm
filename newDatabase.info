@@ -1,15 +1,6 @@
 HPKGNAME=hpkgtest
 HPKGVER=1
 PKGVER=0.0.01
-ARCH=x86
-DEPLIST=random shit
-MD5SUM=0ALOERDAOEIF5HADOEISDD
-SUMMARY=This is a test of an hpkg package database entry.
-
-HPKGNAME=hpkgtest
-HPKGVER=2
-PKGVER=0.0.02
-ARCH=x86
 DEPLIST=random shit
 MD5SUM=0ALOERDAOEIF5HADOEISDD
 SUMMARY=This is a test of an hpkg package database entry.
@@ -17,8 +8,13 @@ SUMMARY=This is a test of an hpkg package database entry.
 HPKGNAME=helloworld
 HPKGVER=2
 PKGVER=0.0.02
-ARCH=x86
 DEPLIST=random shit
 MD5SUM=0ALOERDAOEIF5HADOEISDD
 SUMMARY=This is a test of an hpkg package database entry.
 
+HPKGNAME=hpkgtest
+HPKGVER=2
+PKGVER=0.0.02
+DEPLIST=
+MD5SUM=0ALOERDAOEIF5HADOEISDD
+SUMMARY=This is a test of an hpkg package database entry.

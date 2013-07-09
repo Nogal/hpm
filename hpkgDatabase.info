@@ -1,23 +1,17 @@
-HPKGNAME=hpkgtest
-HPKGVER=2
-PKGVER=0.0.02
-ARCH=x86
-DEPLIST=test2
-MD5SUM=0ALOERDAOEIF5HADOEISDD
-SUMMARY=This is a test of an hpkg package database entry.
 
 HPKGNAME=helloworld
 HPKGVER=2
 PKGVER=0.0.02
-ARCH=x86
-DEPLIST=hpkgtest test2
+MIRROR=www.google.com
+DEPLIST=random shit
 MD5SUM=0ALOERDAOEIF5HADOEISDD
 SUMMARY=This is a test of an hpkg package database entry.
 
-HPKGNAME=test2
+HPKGNAME=hpkgtest
 HPKGVER=2
 PKGVER=0.0.02
-ARCH=x86
+MIRROR=www.google.com
 DEPLIST=
 MD5SUM=0ALOERDAOEIF5HADOEISDD
 SUMMARY=This is a test of an hpkg package database entry.
+

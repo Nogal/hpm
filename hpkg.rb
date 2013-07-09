@@ -141,8 +141,6 @@ def package_queue(packages)
             end
         end
     end
-    packageList = packages.join(" ")
-    puts "Packages to be installed: #{packageList}"
 end
 
 def is_installed(packageName, pkgver)
@@ -167,6 +165,13 @@ def update()
     mirrorfile.close
    
     newDatabase = []
+    nameinfo = nil
+    mirrorinfo = nil
+    hpkgversioninfo = nil
+    versioninfo = nil
+    depinfo = nil
+    hashinfo = nil
+    summaryinfo = nil
 
     mirrors.each do |mirror|
         mirror.chomp
@@ -179,7 +184,8 @@ def update()
             line.chomp
             if line.include? "HPKGNAME="
                 nameinfo = line.chomp
-                6.times do
+                mirrorinfo = "MIRROR=" + mirror
+                5.times do
                 if newDatabase[i].include? "HPKGVER="
                     hpkgversioninfo = newDatabase[i]
                     hpkgversioninfo = hpkgversioninfo.chomp
@@ -190,15 +196,11 @@ def update()
                         versioninfo = versioninfo.chomp
                     end
                 end
-                if newDatabase[i].include? "ARCH="
-                    archinfo = newDatabase[i]
-                    archinfo = archinfo.chomp
-                end
                 if newDatabase[i].include? "DEPLIST="
                     depinfo = newDatabase[i]
                     depinfo = depinfo.chomp
                 end
-                if newDatabase[i].include? "HASH="
+                if newDatabase[i].include? "MD5SUM="
                     hashinfo = newDatabase[i]
                     hashinfo = hashinfo.chomp
                 end
@@ -219,26 +221,26 @@ def update()
                         if dbEntry.include? nameinfo
                             checkCounter = hpkgDatabaseIndex
                             databaseCounter = hpkgDatabaseIndex
-                            7.times do
-                                if $hpkgDatabase[checkCounter].include? "HPKGVER="
-                                    checkVersion = ""
-                                    checkVersion = hpkgversioninfo.scan(/HPKGVER=(.+$)/)
-                                    checkVersion = checkVersion.join
-                                    hpkgCheckVersion = $hpkgDatabase[checkCounter].scan(/HPKGVER=(.+$)/)
-                                    hpkgCheckVersion = hpkgCheckVersion.join
-                                    if checkVersion > hpkgCheckVersion
-                                        8.times do
-                                            $hpkgDatabase.delete_at(databaseCounter)
+                            6.times do
+                                    if $hpkgDatabase[checkCounter].include? "HPKGVER="
+                                        checkVersion = ""
+                                        checkVersion = hpkgversioninfo.scan(/HPKGVER=(.+$)/)
+                                        checkVersion = checkVersion.join
+                                        hpkgCheckVersion = $hpkgDatabase[checkCounter].scan(/HPKGVER=(.+$)/)
+                                        hpkgCheckVersion = hpkgCheckVersion.join
+                                        if checkVersion > hpkgCheckVersion
+                                            7.times do
+                                                $hpkgDatabase.delete_at(databaseCounter)
+                                            end
+                                        $hpkgDatabase.push(nameinfo, hpkgversioninfo, versioninfo, mirrorinfo, depinfo, hashinfo, summaryinfo, "\n")
                                         end
-                                    $hpkgDatabase.push(nameinfo, hpkgversioninfo, versioninfo, archinfo, depinfo, hashinfo, summaryinfo, "\n")
-                                    end
                                 end
                                 checkCounter = checkCounter + 1
                             end
                         end
                     end
                 else
-                    $hpkgDatabase.push(nameinfo, hpkgversioninfo, versioninfo, archinfo, depinfo, hashinfo, summaryinfo, "\n")
+                    $hpkgDatabase.push(nameinfo, hpkgversioninfo, versioninfo, mirrorinfo, depinfo, hashinfo, summaryinfo, "\n")
                 end
             end
         end
@@ -261,7 +263,7 @@ def update()
         $hpkgDatabase.each_with_index do |repoEntry, repoIndex|
             if repoEntry.include? installedPackageName
                 repoCheckCounter = repoIndex
-                7.times do
+                6.times do
                     if not $hpkgDatabase[repoCheckCounter] == nil
                         if $hpkgDatabase[repoCheckCounter].include? "PKGVER="
                             if not $hpkgDatabase[repoCheckCounter].include? "HPKGVER="
@@ -386,8 +388,8 @@ packages = ARGV
 case action
     when "install"
 #        package_queue(packages)
-        puts "List of packages to be installed: "
-        puts packages
+        packageDisplay = packages.join(" ") 
+        puts "Packages to be installed:\n#{packageDisplay}\n"
         puts "Proceed with installation? "
         STDOUT.flush
         decision = STDIN.gets.chomp
@@ -400,8 +402,8 @@ case action
     when "source-install"; packages.each {|package| sourceinstall(package)}
     when "local-install"
 #        package_queue(packages)
-        puts "List of packages to be installed: "
-        puts packages
+        packageDisplay = packages.join(" ") 
+        puts "Packages to be installed:\n#{packageDisplay}\n"
         puts "Proceed with installation? "
         STDOUT.flush
         decision = STDIN.gets.chomp
@@ -413,6 +415,9 @@ case action
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
-    when "test"; package_queue(packages)
+    when "test"
+        package_queue(packages)
+        packageDisplay = packages.join(" ") 
+        puts "Packages to be installed:\n#{packageDisplay}"
     else helpPage
 end
