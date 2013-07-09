@@ -353,6 +353,7 @@ def install(packageName)
     puts "Registering packgages in database"
     open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database|
             database.puts "#{packageName}\\#{pkgver}" }
+    # And save information to uninstall with:
     uninstallInfo = `tar -tf /opt/hpkg/tmp/#{packageName}.hpkg`
     IO.write("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", uninstallInfo) 
            
@@ -361,6 +362,35 @@ def install(packageName)
     FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "/etc/hpkg/controls/")
 
     puts `chmod +x #{binpath}/#{binfile}`
+end
+
+def remove(packageName)
+    uninstallInfo = []
+    dirList = []
+    fileList = []
+    f = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "r")
+    f.each_line {|line| uninstallInfo.push line }
+    f.close
+    uninstallInfo.each do |entry|
+        entry = entry.scan(/#{packageName}\/(.+$)/)
+        entry = entry.join
+        dirCheck = entry.length - 1
+        if dirCheck == entry.rindex("/")
+            dirList.push(entry)
+        else
+            fileList.push(entry)
+        end
+    end
+    puts "List of directories: #{dirList}"
+    dirList.each do |directory|
+        if Dir["/#{directory}/*"].empty? then
+            puts "#{directory} is empty"
+        else
+            puts "#{directory} not empty"
+        end
+    end
+    puts ""
+    puts "List of files: #{fileList}"
 end
 
 def repoinstall(packageName)

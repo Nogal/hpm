@@ -1,0 +1,4 @@
+BIN_FILE=helloworld
+BIN_PATH=/usr/bin
+PKGVER=0.1
+CONSCRIPT=helloworld.conscript

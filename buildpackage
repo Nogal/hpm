@@ -37,7 +37,7 @@ Directory Contents for the package should look like this.
 Create the package by cd'ing one directory before the package directory... and executing this command.
 
 
-tar -czvf package.hpkg package_dir/*
+tar -cjvf package.hpkg package_dir/*
 
 
 Congrats, HPKG built!
