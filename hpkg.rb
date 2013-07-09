@@ -93,7 +93,7 @@ end
 
 def exthpkg(packageName)
     # Extract the contents from the packaeg.
-    puts `tar -C /opt/hpkg/tmp/ -xf #{packageName}.hpkg`
+    puts `tar -C /opt/hpkg/tmp/ -xjf #{packageName}.hpkg`
 end
 
 def package_queue(packages)
@@ -117,13 +117,12 @@ def package_queue(packages)
                             deplist = database[checkCounter].scan(/DEPLIST=(.+$)/)
                             deplist = deplist.join
                             deplist = deplist.split
-                            puts deplist
                         end
                     end
                     if database[checkCounter] != nil
                         if database[checkCounter].include? "PKGVER="
                             if not database[checkCounter].include? "HPKGVER="
-                                pkgver = database[checkCounter].scan(/=(.+$)/)
+                                pkgver = database[checkCounter].scan(/PKGVER=(.+$)/)
                             end
                         end
                     end
