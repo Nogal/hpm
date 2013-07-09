@@ -96,6 +96,37 @@ def exthpkg(packageName)
     puts `tar -C /opt/hpkg/tmp/ -xjf #{packageName}.hpkg`
 end
 
+def queue_check(database, databaseIndex, deplist, pkgver)
+    checkCounter = databaseIndex
+    7.times do
+        if database[checkCounter] != nil
+            if database[checkCounter].include? "DEPLIST="
+                deplist = database[checkCounter].scan(/DEPLIST=(.+$)/)
+                deplist = deplist.join
+                deplist = deplist.split
+            end
+        end
+        if database[checkCounter] != nil
+            if database[checkCounter].include? "PKGVER="
+                if not database[checkCounter].include? "HPKGVER="
+                    pkgver = database[checkCounter].scan(/PKGVER=(.+$)/)
+                end
+            end
+        end
+        checkCounter = checkCounter + 1
+    end
+    if deplist.empty? == false
+        deplist.each do |dependency|
+            if is_installed(packageName, pkgver) == false
+                if not packages.include?(dependency)
+                    packages.unshift(dependency)
+                    package_queue(packages)
+                end
+            end
+        end
+    end
+end
+
 def package_queue(packages)
     # Resolve the dependencies. Check each package to be installed's in the
     # database for the list of dependencies. For each dependency, check whether 
@@ -110,34 +141,7 @@ def package_queue(packages)
 
         database.each_with_index do |line, databaseIndex|
             if line.include? "HPKGNAME=#{packageName}"
-                checkCounter = databaseIndex
-                7.times do
-                    if database[checkCounter] != nil
-                        if database[checkCounter].include? "DEPLIST="
-                            deplist = database[checkCounter].scan(/DEPLIST=(.+$)/)
-                            deplist = deplist.join
-                            deplist = deplist.split
-                        end
-                    end
-                    if database[checkCounter] != nil
-                        if database[checkCounter].include? "PKGVER="
-                            if not database[checkCounter].include? "HPKGVER="
-                                pkgver = database[checkCounter].scan(/PKGVER=(.+$)/)
-                            end
-                        end
-                    end
-                    checkCounter = checkCounter + 1
-                end
-                if deplist.empty? == false
-                    deplist.each do |dependency|
-                        if is_installed(packageName, pkgver) == false
-                            if not packages.include?(dependency)
-                                packages.unshift(dependency)
-                                package_queue(packages)
-                            end
-                        end
-                    end
-                end
+                queue_check(database, databaseIndex, deplist, pkgver)
             end
         end
     end
@@ -152,6 +156,44 @@ def is_installed(packageName, pkgver)
         return false
     end
 end
+def version_check(repoIndex, installedPackageName, installedPackageVersion)
+    repoCheckCounter = repoIndex
+    6.times do
+        if not $hpkgDatabase[repoCheckCounter] == nil
+            if $hpkgDatabase[repoCheckCounter].include? "PKGVER="
+                if not $hpkgDatabase[repoCheckCounter].include? "HPKGVER="
+                    repoCheckVersion = $hpkgDatabase[repoCheckCounter].scan(/PKGVER=(.+$)/)
+                    if repoCheckVersion != installedPackageVersion
+                        $updateDatabase.push(installedPackageName)
+                    end
+                end
+            end
+        end
+        repoCheckCounter = repoCheckCounter + 1
+    end
+end
+
+def database_check(hpkgDatabaseIndex, databaseData)
+    checkCounter = hpkgDatabaseIndex
+    databaseCounter = hpkgDatabaseIndex
+    6.times do
+        if $hpkgDatabase[checkCounter].include? "HPKGVER="
+            checkVersion = ""
+            checkVersion = hpkgversioninfo.scan(/HPKGVER=(.+$)/)
+            checkVersion = checkVersion.join
+            hpkgCheckVersion = $hpkgDatabase[checkCounter].scan(/HPKGVER=(.+$)/)
+            hpkgCheckVersion = hpkgCheckVersion.join
+            if checkVersion > hpkgCheckVersion
+                7.times do
+                    $hpkgDatabase.delete_at(databaseCounter)
+                end
+            end
+        $hpkgDatabase.push(databaseData)
+       databaseData.clear
+       end
+    checkCounter = checkCounter + 1
+    end
+end
 
 def update()
     #              ######   THIS IS IN PROTOTYPE FORM     #########
@@ -164,6 +206,7 @@ def update()
     mirrorfile.each_line {|line| mirrors.push line.chomp }
     mirrorfile.close
    
+    databateData = []
     newDatabase = []
     nameinfo = nil
     mirrorinfo = nil
@@ -210,6 +253,8 @@ def update()
                 end
                 i = i + 1
             end
+
+            databaseData.push(nameinfo, hpkgversioninfo, versioninfo, mirrorinfo, depinfo, hashinfo, summaryinfo, "\n")
     
                 # ok kids... here's where things get complicated.
                 # check if the current database entry includes the package, if so, 
@@ -219,28 +264,12 @@ def update()
                 if $hpkgDatabase.include? nameinfo
                     $hpkgDatabase.each_with_index do |dbEntry, hpkgDatabaseIndex|
                         if dbEntry.include? nameinfo
-                            checkCounter = hpkgDatabaseIndex
-                            databaseCounter = hpkgDatabaseIndex
-                            6.times do
-                                if $hpkgDatabase[checkCounter].include? "HPKGVER="
-                                    checkVersion = ""
-                                    checkVersion = hpkgversioninfo.scan(/HPKGVER=(.+$)/)
-                                    checkVersion = checkVersion.join
-                                    hpkgCheckVersion = $hpkgDatabase[checkCounter].scan(/HPKGVER=(.+$)/)
-                                    hpkgCheckVersion = hpkgCheckVersion.join
-                                    if checkVersion > hpkgCheckVersion
-                                        7.times do
-                                            $hpkgDatabase.delete_at(databaseCounter)
-                                        end
-                                    end
-                                $hpkgDatabase.push(nameinfo, hpkgversioninfo, versioninfo, mirrorinfo, depinfo, hashinfo, summaryinfo, "\n")
-                                end
-                            checkCounter = checkCounter + 1
-                            end
+                            database_check(hpkgDatabesIndex, databaseData)
                         end
                     end
                 else
-                    $hpkgDatabase.push(nameinfo, hpkgversioninfo, versioninfo, mirrorinfo, depinfo, hashinfo, summaryinfo, "\n")
+                    $hpkgDatabase.push(databaseData)
+                    databaseData.clear
                 end
             end
         end
@@ -262,20 +291,7 @@ def update()
         installedPackageVersion = installedPackageVersion.join
         $hpkgDatabase.each_with_index do |repoEntry, repoIndex|
             if repoEntry.include? installedPackageName
-                repoCheckCounter = repoIndex
-                6.times do
-                    if not $hpkgDatabase[repoCheckCounter] == nil
-                        if $hpkgDatabase[repoCheckCounter].include? "PKGVER="
-                            if not $hpkgDatabase[repoCheckCounter].include? "HPKGVER="
-                                repoCheckVersion = $hpkgDatabase[repoCheckCounter].scan(/PKGVER=(.+$)/)
-                                if repoCheckVersion != installedPackageVersion
-                                    $updateDatabase.push(installedPackageName)
-                                end
-                            end
-                        end
-                    end
-                    repoCheckCounter = repoCheckCounter + 1
-                end
+                version_check(repoIndex, installedPackageName, installedPackageVersion)
             end
         end
     end
