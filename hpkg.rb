@@ -222,20 +222,20 @@ def update()
                             checkCounter = hpkgDatabaseIndex
                             databaseCounter = hpkgDatabaseIndex
                             6.times do
-                                    if $hpkgDatabase[checkCounter].include? "HPKGVER="
-                                        checkVersion = ""
-                                        checkVersion = hpkgversioninfo.scan(/HPKGVER=(.+$)/)
-                                        checkVersion = checkVersion.join
-                                        hpkgCheckVersion = $hpkgDatabase[checkCounter].scan(/HPKGVER=(.+$)/)
-                                        hpkgCheckVersion = hpkgCheckVersion.join
-                                        if checkVersion > hpkgCheckVersion
-                                            7.times do
-                                                $hpkgDatabase.delete_at(databaseCounter)
-                                            end
-                                        $hpkgDatabase.push(nameinfo, hpkgversioninfo, versioninfo, mirrorinfo, depinfo, hashinfo, summaryinfo, "\n")
+                                if $hpkgDatabase[checkCounter].include? "HPKGVER="
+                                    checkVersion = ""
+                                    checkVersion = hpkgversioninfo.scan(/HPKGVER=(.+$)/)
+                                    checkVersion = checkVersion.join
+                                    hpkgCheckVersion = $hpkgDatabase[checkCounter].scan(/HPKGVER=(.+$)/)
+                                    hpkgCheckVersion = hpkgCheckVersion.join
+                                    if checkVersion > hpkgCheckVersion
+                                        7.times do
+                                            $hpkgDatabase.delete_at(databaseCounter)
                                         end
+                                    end
+                                $hpkgDatabase.push(nameinfo, hpkgversioninfo, versioninfo, mirrorinfo, depinfo, hashinfo, summaryinfo, "\n")
                                 end
-                                checkCounter = checkCounter + 1
+                            checkCounter = checkCounter + 1
                             end
                         end
                     end
