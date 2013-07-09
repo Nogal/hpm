@@ -93,7 +93,7 @@ end
 
 def exthpkg(packageName)
     # Extract the contents from the packaeg.
-    puts `tar -C /opt/hpkg/tmp/ -xjf #{packageName}.hpkg`
+    puts `tar -C /opt/hpkg/tmp/ -xf #{packageName}.hpkg`
 end
 
 def package_queue(packages)
@@ -323,7 +323,9 @@ def install(packageName)
     # Register package within the database
     puts "Registering packgages in database"
     open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database|
-           database.puts "#{packageName}\\#{pkgver}" }
+            database.puts "#{packageName}\\#{pkgver}" }
+    uninstallInfo = `tar -tf /opt/hpkg/tmp/#{packageName}.hpkg`
+    IO.write("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", uninstallInfo) 
            
     # Register packages within the database
     FileUtils.mv(desktopentry, "/usr/share/applications/")
