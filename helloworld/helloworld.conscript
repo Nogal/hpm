@@ -1,4 +1,4 @@
 #!/bin/bash
 
-mv usr/* /usr/
+cp -anT usr/ /usr
 
