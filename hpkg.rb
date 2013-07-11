@@ -97,6 +97,10 @@ def exthpkg(packageName)
 end
 
 def queue_check(database, databaseIndex, deplist, pkgver)
+    # check the dependency list of each file, for each
+    # dependency, check if it is installed, if not, add
+    # it to the list of files to be installed.
+ 
     checkCounter = databaseIndex
     7.times do
         if database[checkCounter] != nil
@@ -117,7 +121,9 @@ def queue_check(database, databaseIndex, deplist, pkgver)
     end
     if deplist.empty? == false
         deplist.each do |dependency|
-            if is_installed(packageName, pkgver) == false
+                # I think there is an error in this part... it doens't feel
+                # right.
+            if is_installed(dependency, pkgver) == false
                 if not packages.include?(dependency)
                     packages.unshift(dependency)
                     package_queue(packages)
@@ -158,6 +164,10 @@ def is_installed(packageName, pkgver)
 end
 
 def log_uninstall(packageName, binfile, binpath, desktopentry)
+    # Create a list of files and directories installed by the package.
+    # eliminate the extra information, and write it to a file to be
+    # called during the remove function. Jezzirolk deserves some bacon.
+
     uninstallInfo = []
     baseUninstallInfo = `tar -tf /opt/hpkg/tmp/#{packageName}.hpkg`
     baseUninstallInfo = baseUninstallInfo.lines
@@ -193,6 +203,9 @@ def log_uninstall(packageName, binfile, binpath, desktopentry)
 end
 
 def version_check(repoIndex, installedPackageName, installedPackageVersion)
+    # Check if the installed version is the same as the version available in 
+    # the master repository database, if not, add the package to a list 
+    # to be installed during the "upgrade" function.
     repoCheckCounter = repoIndex
     6.times do
         if not $hpkgDatabase[repoCheckCounter] == nil
@@ -210,6 +223,10 @@ def version_check(repoIndex, installedPackageName, installedPackageVersion)
 end
 
 def database_check(hpkgDatabaseIndex, databaseData)
+    # Check the new repository's database versus the master list. If the new
+    # repository has a version of the package greater than the version in
+    # the master list, replace that block in the master database with the
+    # block from the new list. 
     checkCounter = hpkgDatabaseIndex
     databaseCounter = hpkgDatabaseIndex
     6.times do
@@ -402,6 +419,10 @@ def install(packageName)
 end
 
 def remove(packageName)
+    # Read the uninstall data for the package to be removed. Remove the
+    # files which were installed, then check the directories in which they
+    # were installed to. If thoso directories are empty, remove those too.
+
     uninstallInfo = []
     dirList = []
     fileList = []
