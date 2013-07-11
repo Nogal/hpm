@@ -156,6 +156,38 @@ def is_installed(packageName, pkgver)
         return false
     end
 end
+
+def log_uninstall(packageName, binfile, binpath, desktopentry)
+    uninstallInfo = []
+    baseUninstallInfo = `tar -tf /opt/hpkg/tmp/#{packageName}.hpkg`
+    baseUninstallInfo = baseUninstallInfo.lines
+    baseUninstallInfo.each do |entry|
+        entry.chomp
+        entry = entry.scan(/#{packageName}\/(.+$)/)
+        entry = entry.join
+        uninstallInfo.push(entry)
+    end
+    uninstallInfo.delete(binfile)
+    uninstallInfo.delete("#{binfile}.control")
+    uninstallInfo.delete("#{binfile}.conscript")
+    uninstallInfo.delete("#{binfile}.desktop")
+    uninstallInfo.delete("#{binfile}.hpkg")
+
+    uninstallDesktop = desktopentry.scan(/\/opt\/hpkg\/tmp\/#{packageName}\/(.+$)/)
+    uninstallDesktop = uninstallDesktop.join
+
+    uninstallInfo.push("/usr/share/applications/#{uninstallDesktop}")
+    uninstallInfo.push("/etc/hpkg/controls/#{packageName}.control")
+
+    uninstallInfo.push("#{binpath}/#{binfile}")
+
+    uFile = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "w")
+    uninstallInfo.each do |line|
+        uFile.puts line
+    end
+    uFile.close
+end
+
 def version_check(repoIndex, installedPackageName, installedPackageVersion)
     repoCheckCounter = repoIndex
     6.times do
@@ -359,35 +391,9 @@ def install(packageName)
     FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "/etc/hpkg/controls/")
 
     # And save information to uninstall with:
-    uninstallInfo = []
-    baseUninstallInfo = `tar -tf /opt/hpkg/tmp/#{packageName}.hpkg`
-    baseUninstallInfo = baseUninstallInfo.lines
-    baseUninstallInfo.each do |entry|
-        entry.chomp
-        entry = entry.scan(/#{packageName}\/(.+$)/)
-        entry = entry.join
-        uninstallInfo.push(entry)
-    end
-    uninstallInfo.delete(binfile)
-    uninstallInfo.delete("#{binfile}.control")
-    uninstallInfo.delete("#{binfile}.conscript")
-    uninstallInfo.delete("#{binfile}.desktop")
-    uninstallInfo.delete("#{binfile}.hpkg")
+    log_uninstall(packageName, binfile, binpath, desktopentry)
 
-    uninstallDesktop = desktopentry.scan(/\/opt\/hpkg\/tmp\/#{packageName}\/(.+$)/)
-    uninstallDesktop = uninstallDesktop.join
-    uninstallInfo.push("/usr/share/applications/#{uninstallDesktop}")
-    uninstallInfo.push("/etc/hpkg/controls/#{packageName}.control")
-
-    uninstallInfo.push("#{binpath}/#{binfile}")
-    uninstallInfo.each do |checkClass|
-        puts checkClass.class
-    end
-    uFile = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "w")
-    uninstallInfo.each do |line|
-        uFile.puts line
-    end
-
+    # And make the program executable.
     puts `chmod +x #{binpath}/#{binfile}`
 end
 
@@ -411,7 +417,7 @@ def remove(packageName)
         if Dir["/\/#{directory}/*"].empty? then
             puts "\/#{directory} is empty"
         else
-            puts "\/#{directory} not empty"
+            puts "\/#{directory} is not empty"
         end
     end
     puts ""
