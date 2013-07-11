@@ -176,10 +176,14 @@ def log_uninstall(packageName, binfile, binpath, desktopentry)
     uninstallDesktop = desktopentry.scan(/\/opt\/hpkg\/tmp\/#{packageName}\/(.+$)/)
     uninstallDesktop = uninstallDesktop.join
 
-    uninstallInfo.push("/usr/share/applications/#{uninstallDesktop}")
-    uninstallInfo.push("/etc/hpkg/controls/#{packageName}.control")
+    uninstallInfo.push("usr/share/applications/#{uninstallDesktop}")
+    uninstallInfo.push("etc/hpkg/controls/#{packageName}.control")
 
-    uninstallInfo.push("#{binpath}/#{binfile}")
+    uninstallBinpath = binpath.reverse
+    uninstallBinpath = uninstallBinpath.chop
+    uninstallBinpath = uninstallBinpath.reverse
+    uninstallBinfile = "#{uninstallBinpath}/#{binfile}"
+    uninstallInfo.push(uninstallBinfile)
 
     uFile = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "w")
     uninstallInfo.each do |line|
@@ -413,6 +417,8 @@ def remove(packageName)
             fileList.push(entry)
         end
     end
+
+    puts "List of directories:"
     dirList.each do |directory|
         if Dir["/\/#{directory}/*"].empty? then
             puts "\/#{directory} is empty"
@@ -423,7 +429,7 @@ def remove(packageName)
     puts ""
     puts "List of files:" 
     fileList.each do |file|
-        puts file
+        puts "\/#{file}"
     end
 end
 
