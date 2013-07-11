@@ -418,18 +418,16 @@ def remove(packageName)
         end
     end
 
-    puts "List of directories:"
+    # Delete all the files
+    fileList.each do |file|
+        FileUtils::Verbose.rm(file)
+    end
+
+    # Delete all of the now empty directories
     dirList.each do |directory|
         if Dir["/\/#{directory}/*"].empty? then
-            puts "\/#{directory} is empty"
-        else
-            puts "\/#{directory} is not empty"
+            FileUtils::Verbose.rmdir(directory)
         end
-    end
-    puts ""
-    puts "List of files:" 
-    fileList.each do |file|
-        puts "\/#{file}"
     end
 end
 
