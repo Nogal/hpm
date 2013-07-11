@@ -353,13 +353,40 @@ def install(packageName)
     puts "Registering packgages in database"
     open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database|
             database.puts "#{packageName}\\#{pkgver}" }
-    # And save information to uninstall with:
-    uninstallInfo = `tar -tf /opt/hpkg/tmp/#{packageName}.hpkg`
-    IO.write("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", uninstallInfo) 
            
     # Register packages within the database
     FileUtils.mv(desktopentry, "/usr/share/applications/")
     FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "/etc/hpkg/controls/")
+
+    # And save information to uninstall with:
+    uninstallInfo = []
+    baseUninstallInfo = `tar -tf /opt/hpkg/tmp/#{packageName}.hpkg`
+    baseUninstallInfo = baseUninstallInfo.lines
+    baseUninstallInfo.each do |entry|
+        entry.chomp
+        entry = entry.scan(/#{packageName}\/(.+$)/)
+        entry = entry.join
+        uninstallInfo.push(entry)
+    end
+    uninstallInfo.delete(binfile)
+    uninstallInfo.delete("#{binfile}.control")
+    uninstallInfo.delete("#{binfile}.conscript")
+    uninstallInfo.delete("#{binfile}.desktop")
+    uninstallInfo.delete("#{binfile}.hpkg")
+
+    uninstallDesktop = desktopentry.scan(/\/opt\/hpkg\/tmp\/#{packageName}\/(.+$)/)
+    uninstallDesktop = uninstallDesktop.join
+    uninstallInfo.push("/usr/share/applications/#{uninstallDesktop}")
+    uninstallInfo.push("/etc/hpkg/controls/#{packageName}.control")
+
+    uninstallInfo.push("#{binpath}/#{binfile}")
+    uninstallInfo.each do |checkClass|
+        puts checkClass.class
+    end
+    uFile = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "w")
+    uninstallInfo.each do |line|
+        uFile.puts line
+    end
 
     puts `chmod +x #{binpath}/#{binfile}`
 end
@@ -372,8 +399,7 @@ def remove(packageName)
     f.each_line {|line| uninstallInfo.push line }
     f.close
     uninstallInfo.each do |entry|
-        entry = entry.scan(/#{packageName}\/(.+$)/)
-        entry = entry.join
+        entry.chop!
         dirCheck = entry.length - 1
         if dirCheck == entry.rindex("/")
             dirList.push(entry)
@@ -381,16 +407,18 @@ def remove(packageName)
             fileList.push(entry)
         end
     end
-    puts "List of directories: #{dirList}"
     dirList.each do |directory|
-        if Dir["/#{directory}/*"].empty? then
-            puts "#{directory} is empty"
+        if Dir["/\/#{directory}/*"].empty? then
+            puts "\/#{directory} is empty"
         else
-            puts "#{directory} not empty"
+            puts "\/#{directory} not empty"
         end
     end
     puts ""
-    puts "List of files: #{fileList}"
+    puts "List of files:" 
+    fileList.each do |file|
+        puts file
+    end
 end
 
 def repoinstall(packageName)
