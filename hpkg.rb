@@ -441,13 +441,17 @@ def remove(packageName)
 
     # Delete all the files
     fileList.each do |file|
-        FileUtils::Verbose.rm(file)
+        file = "/#{file}"
+        puts "Removing: #{file}"
+        FileUtils.rm(file)
     end
 
     # Delete all of the now empty directories
     dirList.each do |directory|
         if Dir["/\/#{directory}/*"].empty? then
-            FileUtils::Verbose.rmdir(directory)
+            directory = "/#{directory}"
+            puts "Removing: #{directory}"
+            FileUtils.rmdir(directory)
         end
     end
 end
