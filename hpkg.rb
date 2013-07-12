@@ -93,6 +93,7 @@ end
 
 def exthpkg(packageName)
     # Extract the contents from the packaeg.
+    puts "Extracting #{packageName}..."
     puts `tar -C /opt/hpkg/tmp/ -xjf #{packageName}.hpkg`
 end
 
@@ -399,6 +400,7 @@ def install(packageName)
     hpkgmv(packageName, binfile, binpath)
 
     # Run the control script
+    puts "Running control script..."
     puts `chmod +x #{conscript}`
     puts `/opt/hpkg/tmp/#{packageName}/#{conscript}`
 
