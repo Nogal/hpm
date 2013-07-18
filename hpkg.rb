@@ -97,6 +97,33 @@ def exthpkg(packageName)
     puts `tar -C /opt/hpkg/tmp/ -xjf #{packageName}.hpkg`
 end
 
+def find_block(newDatabase)
+    # Find a unique block for a package within the repository database
+    # and return the start and endpoints of said block.
+    
+    blocklist = []
+    newDatabase.each_with_index do |line, databaseIndex|
+        if line.include? "HPKGNAME="
+            blocklist.push(databaseIndex)
+        end
+    end
+
+    newlist = Array.new 
+    templist = Array.new 
+
+    blocklist.each_index do |databaseIndex|
+        newlist << blocklist.slice(databaseIndex, 2)
+    end
+
+    newlist.each_index do |index|
+        if newlist[index].length == 1
+            newlist[index].push "EOF"
+        end
+    end
+
+    return newlist
+end
+
 def queue_check(database, databaseIndex, deplist, pkgver)
     # check the dependency list of each file, for each
     # dependency, check if it is installed, if not, add
@@ -527,8 +554,11 @@ case action
     when "update"; update
     when "upgrade"; upgrade
     when "test"
-        package_queue(packages)
-        packageDisplay = packages.join(" ") 
-        puts "Packages to be installed:\n#{packageDisplay}"
+#        package_queue(packages)
+#        packageDisplay = packages.join(" ") 
+#        puts "Packages to be installed:\n#{packageDisplay}"
+        newDatabase = IO.readlines("/etc/hpkg/pkginfo/newDatabase.info")
+        start_and_end = find_block(newDatabase)
+        puts "list of start and endpoints: #{start_and_end}"
     else helpPage
 end
