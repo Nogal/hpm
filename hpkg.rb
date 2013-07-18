@@ -97,12 +97,12 @@ def exthpkg(packageName)
     puts `tar -C /opt/hpkg/tmp/ -xjf #{packageName}.hpkg`
 end
 
-def find_block(newDatabase)
+def find_block(database)
     # Find a unique block for a package within the repository database
     # and return the start and endpoints of said block.
     
     blocklist = []
-    newDatabase.each_with_index do |line, databaseIndex|
+    database.each_with_index do |line, databaseIndex|
         if line.include? "HPKGNAME="
             blocklist.push(databaseIndex)
         end
@@ -118,6 +118,8 @@ def find_block(newDatabase)
     newlist.each_index do |index|
         if newlist[index].length == 1
             newlist[index].push "EOF"
+        elsif newlist[index].length == 2
+            newlist[index][1] = newlist[index][1] - 1
         end
     end
 
@@ -485,7 +487,7 @@ def remove(packageName)
     end
 end
 
-def repoinstall(packageName)
+def repoinstall(packages)
     # Install a package from a mirror. Check for connectivity to the
     # mirror, if so, download the package, extract it. Install package.
 
@@ -493,11 +495,18 @@ def repoinstall(packageName)
     
     # CHECK MIRROR STATUS ..... somehow
 
-    # Get the required packages and extract them
-    gethpkg(packageName, mirror)
-    exthpkg(packageName)
+    # Get the required packages and extract them, then install them.
+    packages.each do |packageName|
+        gethpkg(packageName, mirror)
+    end
 
-    install(packageName)
+    packages.each do |packageName|
+        exthpkg(packageName)
+    end
+
+    packages.each do |packageName|
+        install(packageName)
+    end
 end
 
 def localinstall(packageName)
@@ -532,7 +541,7 @@ case action
         STDOUT.flush
         decision = STDIN.gets.chomp
         if proceed == "Y" || proceed == "y"
-            packages.each {|package| repoinstall(package)}
+            repoinstall(packages)
         else
             puts "Aborting Installation"
         end
