@@ -496,32 +496,47 @@ def repoinstall(packages)
     # CHECK MIRROR STATUS ..... somehow
 
     # Get the required packages and extract them, then install them.
-    packages.each do |packageName|
+
+    packages.each_with_index do |packageName, index|
         gethpkg(packageName, mirror)
+        puts "(#{index}/#{packages.length}) Getting #{packageName}"
     end
 
     packages.each do |packageName|
+        puts "Extracting #{packageName}..."
         exthpkg(packageName)
     end
 
     packages.each do |packageName|
+        puts "Installing #{packageName}..."
         install(packageName)
     end
 end
 
-def localinstall(packageName)
+def localinstall(packages)
     # Install a package from a local sourc. Extract it. Clean Input, and
     # install the package. 
 
-    FileUtils.cp("#{packageName}", "/opt/hpkg/tmp/")
-
-    if packageName.include? ".hpkg"
-        packageName = packageName.chomp('.hpkg')
+    packages.each do |packageName|
+        puts "Copying #{packageName} to /opt/hpkg/tmp/..."
+        FileUtils.cp("#{packageName}", "/opt/hpkg/tmp/")
     end
 
-    exthpkg(packageName)
+    packages.each do |packageName|
+        if packageName.include? ".hpkg"
+            packageName = packageName.chomp('.hpkg')
+        end
+        puts "Extracting #{packageName}..."
+        exthpkg(packageName)
+    end
 
-    install(packageName)
+    packages.each do |packageName|
+        if packageName.include? ".hpkg"
+            packageName = packageName.chomp('.hpkg')
+        end
+        puts "Installing #{packageName}..."
+        install(packageName)
+    end
 end
 
 # Get input from the user by means of arguments passed along with the program.
@@ -555,7 +570,7 @@ case action
         STDOUT.flush
         decision = STDIN.gets.chomp
         if decision == "Y" || decision == "y"
-        packages.each {|package| localinstall(package)}
+            localinstall(packages)
         else
             puts "Aborting Installation"
         end
