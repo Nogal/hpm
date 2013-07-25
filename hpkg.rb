@@ -102,23 +102,27 @@ def find_block(database)
     # and return the start and endpoints of said block.
     
     blocklist = []
+    namelist = []
     database.each_with_index do |line, databaseIndex|
         if line.include? "HPKGNAME="
+            pkgname = line.scan(/HPKGNAME=(.+$)/)
+            pkgname = pkgname.join
             blocklist.push(databaseIndex)
+            namelist.push(pkgname)
         end
     end
 
     newlist = Array.new 
-    templist = Array.new 
 
     blocklist.each_index do |databaseIndex|
         newlist << blocklist.slice(databaseIndex, 2)
+        newlist[databaseIndex].push namelist[databaseIndex]
     end
 
     newlist.each_index do |index|
-        if newlist[index].length == 1
-            newlist[index].push "EOF"
-        elsif newlist[index].length == 2
+        if newlist[index].length == 2
+            newlist[index].insert(1, database.length)
+        elsif newlist[index].length == 3
             newlist[index][1] = newlist[index][1] - 1
         end
     end
@@ -289,7 +293,7 @@ def update()
     mirrorfile.each_line {|line| mirrors.push line.chomp }
     mirrorfile.close
    
-    databateData = []
+    databaseData = []
     newDatabase = []
     nameinfo = nil
     mirrorinfo = nil
@@ -303,57 +307,61 @@ def update()
         mirror.chomp
 #        puts `wget -c -0 /etc/hpkg/pkginfo/newDatabase.info #{mirror}/package_database/package_database.info`
         newDatabase = IO.readlines("/etc/hpkg/pkginfo/newDatabase.info")
+        newDatabase = newDatabase.compact
         $hpkgDatabase = [] 
     
-        newDatabase.each_with_index do |line, newDatabaseIndex|
-            i = newDatabaseIndex + 1
-            line.chomp
-            if line.include? "HPKGNAME="
-                nameinfo = line.chomp
-                mirrorinfo = "MIRROR=" + mirror
-                5.times do
-                if newDatabase[i].include? "HPKGVER="
-                    hpkgversioninfo = newDatabase[i]
-                    hpkgversioninfo = hpkgversioninfo.chomp
-                end
-                if newDatabase[i].include? "PKGVER="
-                    if not newDatabase[i].include? "HPKGVER="
-                        versioninfo = newDatabase[i]
-                        versioninfo = versioninfo.chomp
+        newBlocks = find_block(newDatabase)
+        newBlocks.each_index do |newBlockIndex|
+            startBlock = newBlocks[newBlockIndex][0]
+            endBlock = newBlocks[newBlockIndex][1]
+
+            nameinfo = newBlocks[newBlockIndex][2]
+            mirrorinfo = "MIRROR=" + mirror
+
+            i = startBlock 
+            while i <= endBlock
+                if not newDatabase[i] == nil
+                    if newDatabase[i].include? "HPKGVER="
+                        hpkgversioninfo = newDatabase[i]
+                        hpkgversioninfo = hpkgversioninfo.chomp
                     end
-                end
-                if newDatabase[i].include? "DEPLIST="
-                    depinfo = newDatabase[i]
-                    depinfo = depinfo.chomp
-                end
-                if newDatabase[i].include? "MD5SUM="
-                    hashinfo = newDatabase[i]
-                    hashinfo = hashinfo.chomp
-                end
-                if newDatabase[i].include? "SUMMARY="
-                    summaryinfo = newDatabase[i]
-                    summaryinfo = summaryinfo.chomp
+                    if newDatabase[i].include? "PKGVER="
+                        if not newDatabase[i].include? "HPKGVER="
+                            versioninfo = newDatabase[i]
+                            versioninfo = versioninfo.chomp
+                        end
+                    end
+                    if newDatabase[i].include? "DEPLIST="
+                        depinfo = newDatabase[i]
+                        depinfo = depinfo.chomp
+                    end
+                    if newDatabase[i].include? "MD5SUM="
+                        hashinfo = newDatabase[i]
+                        hashinfo = hashinfo.chomp
+                    end
+                    if newDatabase[i].include? "SUMMARY="
+                        summaryinfo = newDatabase[i]
+                        summaryinfo = summaryinfo.chomp
+                    end
                 end
                 i = i + 1
             end
 
-            databaseData.push(nameinfo, hpkgversioninfo, versioninfo, mirrorinfo, depinfo, hashinfo, summaryinfo, "\n")
+            databaseData = [nameinfo, hpkgversioninfo, versioninfo, mirrorinfo, depinfo, hashinfo, summaryinfo, "\n"]
     
-                # ok kids... here's where things get complicated.
-                # check if the current database entry includes the package, if so, 
-                # check if the new database entry's package is at a newer version.
-                # If so, delete that entry and enter a new one, if not, do nothing. 
-                # once the database is ready, push it out to file.
-                if $hpkgDatabase.include? nameinfo
-                    $hpkgDatabase.each_with_index do |dbEntry, hpkgDatabaseIndex|
-                        if dbEntry.include? nameinfo
-                            database_check(hpkgDatabesIndex, databaseData)
-                        end
+            # ok kids... here's where things get complicated.
+            # check if the current database entry includes the package, if so, 
+            # check if the new database entry's package is at a newer version.
+            # If so, delete that entry and enter a new one, if not, do nothing. 
+            # once the database is ready, push it out to file.
+            if $hpkgDatabase.include? nameinfo
+                $hpkgDatabase.each_with_index do |dbEntry, hpkgDatabaseIndex|
+                    if dbEntry.include? nameinfo
+                        database_check(hpkgDatabesIndex, databaseData)
                     end
-                else
-                    $hpkgDatabase.push(databaseData)
-                    databaseData.clear
                 end
+            else
+                $hpkgDatabase.push(databaseData)
             end
         end
     end
