@@ -105,8 +105,7 @@ def find_block(database)
     namelist = []
     database.each_with_index do |line, databaseIndex|
         if line.include? "HPKGNAME="
-            pkgname = line.scan(/HPKGNAME=(.+$)/)
-            pkgname = pkgname.join
+            pkgname = line.chomp
             blocklist.push(databaseIndex)
             namelist.push(pkgname)
         end
@@ -256,29 +255,49 @@ def version_check(repoIndex, installedPackageName, installedPackageVersion)
     end
 end
 
-def database_check(hpkgDatabaseIndex, databaseData)
+def database_check(hpkgDatabaseIndex, databaseData, versioninfo)
     # Check the new repository's database versus the master list. If the new
     # repository has a version of the package greater than the version in
     # the master list, replace that block in the master database with the
     # block from the new list. 
     checkCounter = hpkgDatabaseIndex
     databaseCounter = hpkgDatabaseIndex
-    6.times do
-        if $hpkgDatabase[checkCounter].include? "HPKGVER="
-            checkVersion = ""
-            checkVersion = hpkgversioninfo.scan(/HPKGVER=(.+$)/)
-            checkVersion = checkVersion.join
-            hpkgCheckVersion = $hpkgDatabase[checkCounter].scan(/HPKGVER=(.+$)/)
-            hpkgCheckVersion = hpkgCheckVersion.join
-            if checkVersion > hpkgCheckVersion
-                7.times do
-                    $hpkgDatabase.delete_at(databaseCounter)
+    newBlocks = find_block(databaseData)
+    puts newBlocks
+    newBlocks.each_index do |newBlockIndex|
+        startBlock = newBlocks[newBlockIndex][0]
+        endBlock = newBlocks[newBlockIndex][1]
+        i = startBlock
+        while i <= endBlock
+#           if not $hpkgDatabase[checkCounter] == nil
+                puts "Trigger 1"
+#               puts "hpkgdatabase at checkcounter = #{$hpkgDatabase[checkCounter]}"
+#               $hpkgDatabase[checkCounter].each do |line|
+            if not databaseData[i] == nil
+                puts "databaseDate: #{databaseData}"
+                databaseData.each do |line|
+                    puts "Trigger 2"
+                if line.include?("HPKGVER=")
+                    puts "Trigger 3"
+                    checkVersion = versioninfo.scan(/HPKGVER=(.+$)/)
+                    checkVersion = checkVersion.join
+                    hpkgCheckVersion = line.scan(/HPKGVER=(.+$)/)
+                    hpkgCheckVersion = hpkgCheckVersion.join
+                    puts "checkVers: #{checkVersion}"
+                    puts "hpkgVers: #{hpkgCheckVersion}"
+                    if checkVersion > hpkgCheckVersion
+                        7.times do
+                            $hpkgDatabase.delete_at(databaseCounter)
+                        end
+                    end
+                $hpkgDatabase.push(databaseData)
+                databaseData.clear
+                end
                 end
             end
-        $hpkgDatabase.push(databaseData)
-       databaseData.clear
-       end
-    checkCounter = checkCounter + 1
+        i += 1
+        end
+        checkCounter = checkCounter + 1
     end
 end
 
@@ -348,20 +367,37 @@ def update()
             end
 
             databaseData = [nameinfo, hpkgversioninfo, versioninfo, mirrorinfo, depinfo, hashinfo, summaryinfo, "\n"]
+            if $hpkgDatabase.empty?
+                $hpkgDatabase.push(databaseData)
+            end
     
             # ok kids... here's where things get complicated.
             # check if the current database entry includes the package, if so, 
             # check if the new database entry's package is at a newer version.
             # If so, delete that entry and enter a new one, if not, do nothing. 
             # once the database is ready, push it out to file.
-            if $hpkgDatabase.include? nameinfo
-                $hpkgDatabase.each_with_index do |dbEntry, hpkgDatabaseIndex|
-                    if dbEntry.include? nameinfo
-                        database_check(hpkgDatabesIndex, databaseData)
+            $hpkgDatabase.each_index do |index|
+                hpkgBlocks = find_block($hpkgDatabase[index])
+                hpkgBlocks.each_index do |newBlockIndex|
+                    startBlock = newBlocks[newBlockIndex][0]
+                    endBlock = newBlocks[newBlockIndex][1]
+                    if not hpkgBlocks[index] == nil
+                    puts "Trigger 0"
+                    puts hpkgBlocks[index]
+                    puts "nameinfo: #{nameinfo}"
+                    puts "hpkgBlocks[index]: #{hpkgBlocks[index][2]}"
+                    if hpkgBlocks[index][2].include? nameinfo
+                        puts "Trigger 1"
+                        $hpkgDatabase.each_with_index do |dbEntry, hpkgDatabaseIndex|
+                            if dbEntry.include? nameinfo
+                                database_check(hpkgDatabaseIndex, databaseData, versioninfo)
+                            end
+                        end
+                    else
+                        $hpkgDatabase.push(databaseData)
+                    end
                     end
                 end
-            else
-                $hpkgDatabase.push(databaseData)
             end
         end
     end
