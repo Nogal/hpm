@@ -255,49 +255,43 @@ def version_check(repoIndex, installedPackageName, installedPackageVersion)
     end
 end
 
-def database_check(hpkgDatabaseIndex, databaseData, versioninfo)
+def database_check(hpkgBlock, databaseData, hpkgversioninfo)
     # Check the new repository's database versus the master list. If the new
     # repository has a version of the package greater than the version in
     # the master list, replace that block in the master database with the
     # block from the new list. 
-    checkCounter = hpkgDatabaseIndex
-    databaseCounter = hpkgDatabaseIndex
+
     newBlocks = find_block(databaseData)
-    puts newBlocks
     newBlocks.each_index do |newBlockIndex|
         startBlock = newBlocks[newBlockIndex][0]
         endBlock = newBlocks[newBlockIndex][1]
         i = startBlock
         while i <= endBlock
-#           if not $hpkgDatabase[checkCounter] == nil
-                puts "Trigger 1"
-#               puts "hpkgdatabase at checkcounter = #{$hpkgDatabase[checkCounter]}"
-#               $hpkgDatabase[checkCounter].each do |line|
             if not databaseData[i] == nil
-                puts "databaseDate: #{databaseData}"
-                databaseData.each do |line|
-                    puts "Trigger 2"
-                if line.include?("HPKGVER=")
-                    puts "Trigger 3"
-                    checkVersion = versioninfo.scan(/HPKGVER=(.+$)/)
+                if databaseData[i].include?("HPKGVER=")
+                    checkVersion = hpkgversioninfo.scan(/HPKGVER=(.+$)/)
                     checkVersion = checkVersion.join
-                    hpkgCheckVersion = line.scan(/HPKGVER=(.+$)/)
-                    hpkgCheckVersion = hpkgCheckVersion.join
-                    puts "checkVers: #{checkVersion}"
-                    puts "hpkgVers: #{hpkgCheckVersion}"
-                    if checkVersion > hpkgCheckVersion
-                        7.times do
-                            $hpkgDatabase.delete_at(databaseCounter)
+                    n = hpkgBlock[0] 
+                    hpkgStartBlock = hpkgBlock[0] 
+                    hpkgEndBlock = hpkgBlock[1] 
+                    while n <= hpkgEndBlock
+                        if not $hpkgDatabase[n] == nil
+                            if $hpkgDatabase[n].include?("HPKGVER=")
+                                hpkgCheckVersion = $hpkgDatabase[n].scan(/HPKGVER=(.+$)/)
+                                hpkgCheckVersion = hpkgCheckVersion.join
+                            end
                         end
+                        n += 1
                     end
-                $hpkgDatabase.push(databaseData)
+                    if checkVersion > hpkgCheckVersion
+                        $hpkgDatabase.slice!(hpkgStartBlock..hpkgEndBlock)
+                    end
+                $hpkgDatabase.push(databaseData.clone)
                 databaseData.clear
-                end
                 end
             end
         i += 1
         end
-        checkCounter = checkCounter + 1
     end
 end
 
@@ -322,12 +316,12 @@ def update()
     hashinfo = nil
     summaryinfo = nil
 
+    $hpkgDatabase = [] 
     mirrors.each do |mirror|
         mirror.chomp
 #        puts `wget -c -0 /etc/hpkg/pkginfo/newDatabase.info #{mirror}/package_database/package_database.info`
         newDatabase = IO.readlines("/etc/hpkg/pkginfo/newDatabase.info")
         newDatabase = newDatabase.compact
-        $hpkgDatabase = [] 
     
         newBlocks = find_block(newDatabase)
         newBlocks.each_index do |newBlockIndex|
@@ -367,8 +361,9 @@ def update()
             end
 
             databaseData = [nameinfo, hpkgversioninfo, versioninfo, mirrorinfo, depinfo, hashinfo, summaryinfo, "\n"]
+
             if $hpkgDatabase.empty?
-                $hpkgDatabase.push(databaseData)
+                $hpkgDatabase += databaseData
             end
     
             # ok kids... here's where things get complicated.
@@ -376,26 +371,16 @@ def update()
             # check if the new database entry's package is at a newer version.
             # If so, delete that entry and enter a new one, if not, do nothing. 
             # once the database is ready, push it out to file.
-            $hpkgDatabase.each_index do |index|
-                hpkgBlocks = find_block($hpkgDatabase[index])
-                hpkgBlocks.each_index do |newBlockIndex|
-                    startBlock = newBlocks[newBlockIndex][0]
-                    endBlock = newBlocks[newBlockIndex][1]
-                    if not hpkgBlocks[index] == nil
-                    puts "Trigger 0"
-                    puts hpkgBlocks[index]
-                    puts "nameinfo: #{nameinfo}"
-                    puts "hpkgBlocks[index]: #{hpkgBlocks[index][2]}"
-                    if hpkgBlocks[index][2].include? nameinfo
-                        puts "Trigger 1"
-                        $hpkgDatabase.each_with_index do |dbEntry, hpkgDatabaseIndex|
-                            if dbEntry.include? nameinfo
-                                database_check(hpkgDatabaseIndex, databaseData, versioninfo)
-                            end
-                        end
+
+            hpkgBlocks = find_block($hpkgDatabase)
+            hpkgBlocks.each_index do |newBlockIndex|
+                startBlock = newBlocks[newBlockIndex][0]
+                endBlock = newBlocks[newBlockIndex][1]
+                if not hpkgBlocks == nil
+                    if hpkgBlocks[newBlockIndex][2].include? nameinfo
+                                database_check(hpkgBlocks[newBlockIndex], databaseData, hpkgversioninfo)
                     else
-                        $hpkgDatabase.push(databaseData)
-                    end
+                        $hpkgDatabase += databaseData
                     end
                 end
             end
