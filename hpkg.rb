@@ -80,7 +80,7 @@ end
 
 def gethpkg(packageName, mirror)
     # Download the package from the mirror
-    puts `wget -c -0 /opt/hpkg/tmp/#{packageName}.hpkg #{mirror}/#{packageName}`
+    puts `wget -c -O /opt/hpkg/tmp/#{packageName}.hpkg #{mirror}/#{packageName}`
 end
 
 def checkFile( db_file, package )
@@ -235,20 +235,29 @@ def log_uninstall(packageName, binfile, binpath, desktopentry)
     uFile.close
 end
 
-def version_check(repoIndex, installedPackageName, installedPackageVersion)
+def version_check(updateBlocks, installedPackageName, installedPackageVersion)
     # Check if the installed version is the same as the version available in 
     # the master repository database, if not, add the package to a list 
     # to be installed during the "upgrade" function.
-    repoCheckCounter = repoIndex
-    6.times do
-        if not $hpkgDatabase[repoCheckCounter] == nil
-            if $hpkgDatabase[repoCheckCounter].include? "PKGVER="
-                if not $hpkgDatabase[repoCheckCounter].include? "HPKGVER="
-                    repoCheckVersion = $hpkgDatabase[repoCheckCounter].scan(/PKGVER=(.+$)/)
-                    if repoCheckVersion != installedPackageVersion
-                        $updateDatabase.push(installedPackageName)
+
+    updateBlocks.each_index do |index|
+        i = updateBlocks[index][0]
+        endBlock = updateBlocks[index][1]
+        checkPackageName = updateBlocks[index][2].scan(/HPKGNAME=(.+$)/
+        checkPackageName = checkPackageName.join
+        if checkPackageName == installedPackageName
+            while i <= endBlock
+                if not $hpkgDatabase[i] == nil
+                    if $hpkgDatabase[i].include? "PKGVER="
+                        if not $hpkgDatabase[i].include? "HPKGVER="
+                            repoCheckVersion = $hpkgDatabase[repoCheckCounter].scan(/PKGVER=(.+$)/)
+                            if repoCheckVersion != installedPackageVersion
+                                $updateDatabase.push(installedPackageName)
+                            end
+                        end
                     end
                 end
+                i += 1
             end
         end
         repoCheckCounter = repoCheckCounter + 1
@@ -322,7 +331,7 @@ def update()
     $hpkgDatabase = [] 
     mirrors.each do |mirror|
         mirror.chomp
-#        puts `wget -c -0 /etc/hpkg/pkginfo/newDatabase.info #{mirror}/package_database/package_database.info`
+#        puts `wget -c -O /etc/hpkg/pkginfo/newDatabase.info #{mirror}/package_database/package_database.info`
         newDatabase = IO.readlines("/etc/hpkg/pkginfo/newDatabase.info")
         newDatabase = newDatabase.compact
     
@@ -401,10 +410,9 @@ def update()
         installedPackageName = installedPackageName.join
         installedPackageVersion = line.scan(/.+\\(.+$)/)
         installedPackageVersion = installedPackageVersion.join
-        $hpkgDatabase.each_with_index do |repoEntry, repoIndex|
-            if repoEntry.include? installedPackageName
-                version_check(repoIndex, installedPackageName, installedPackageVersion)
-            end
+        updateBlocks = find_blocks($hpkgDatabase)
+        if $hpkgDatabase.include? installedPackageName
+                version_check(updateBlocks, installedPackageName, installedPackageVersion)
         end
     end
     updateDatabaseFile = File.open("/etc/hpkg/pkginfo/updateDatabase.info", "w")
@@ -606,12 +614,5 @@ case action
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
-    when "test"
-#        package_queue(packages)
-#        packageDisplay = packages.join(" ") 
-#        puts "Packages to be installed:\n#{packageDisplay}"
-        newDatabase = IO.readlines("/etc/hpkg/pkginfo/newDatabase.info")
-        start_and_end = find_block(newDatabase)
-        puts "list of start and endpoints: #{start_and_end}"
     else helpPage
 end
