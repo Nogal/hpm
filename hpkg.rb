@@ -255,7 +255,7 @@ def version_check(repoIndex, installedPackageName, installedPackageVersion)
     end
 end
 
-def database_check(hpkgBlock, databaseData, hpkgversioninfo)
+def database_check(hpkgBlock, databaseData, hpkgversioninfo, nameinfo)
     # Check the new repository's database versus the master list. If the new
     # repository has a version of the package greater than the version in
     # the master list, replace that block in the master database with the
@@ -263,31 +263,34 @@ def database_check(hpkgBlock, databaseData, hpkgversioninfo)
 
     newBlocks = find_block(databaseData)
     newBlocks.each_index do |newBlockIndex|
-        startBlock = newBlocks[newBlockIndex][0]
+        i = newBlocks[newBlockIndex][0]
         endBlock = newBlocks[newBlockIndex][1]
-        i = startBlock
         while i <= endBlock
             if not databaseData[i] == nil
                 if databaseData[i].include?("HPKGVER=")
                     checkVersion = hpkgversioninfo.scan(/HPKGVER=(.+$)/)
                     checkVersion = checkVersion.join
-                    n = hpkgBlock[0] 
-                    hpkgStartBlock = hpkgBlock[0] 
-                    hpkgEndBlock = hpkgBlock[1] 
-                    while n <= hpkgEndBlock
-                        if not $hpkgDatabase[n] == nil
-                            if $hpkgDatabase[n].include?("HPKGVER=")
-                                hpkgCheckVersion = $hpkgDatabase[n].scan(/HPKGVER=(.+$)/)
-                                hpkgCheckVersion = hpkgCheckVersion.join
+                    hpkgBlock.each_with_index do |block, hpkgIndex|
+                        if block.include? nameinfo
+                            n = hpkgBlock[hpkgIndex][0] 
+                            hpkgStartBlock = hpkgBlock[hpkgIndex][0] 
+                            hpkgEndBlock = hpkgBlock[hpkgIndex][1] 
+                            while n <= hpkgEndBlock
+                                if not $hpkgDatabase[n] == nil
+                                    if $hpkgDatabase[n].include?("HPKGVER=")
+                                        hpkgCheckVersion = $hpkgDatabase[n].scan(/HPKGVER=(.+$)/)
+                                        hpkgCheckVersion = hpkgCheckVersion.join
+                                    end
+                                end
+                                n += 1
+                            end
+                            if checkVersion > hpkgCheckVersion
+                                $hpkgDatabase.slice!(hpkgStartBlock..hpkgEndBlock)
+                                $hpkgDatabase += databaseData
                             end
                         end
-                        n += 1
                     end
-                    if checkVersion > hpkgCheckVersion
-                        $hpkgDatabase.slice!(hpkgStartBlock..hpkgEndBlock)
-                    end
-                $hpkgDatabase.push(databaseData.clone)
-                databaseData.clear
+                    databaseData.clear
                 end
             end
         i += 1
@@ -362,9 +365,6 @@ def update()
 
             databaseData = [nameinfo, hpkgversioninfo, versioninfo, mirrorinfo, depinfo, hashinfo, summaryinfo, "\n"]
 
-            if $hpkgDatabase.empty?
-                $hpkgDatabase += databaseData
-            end
     
             # ok kids... here's where things get complicated.
             # check if the current database entry includes the package, if so, 
@@ -372,13 +372,13 @@ def update()
             # If so, delete that entry and enter a new one, if not, do nothing. 
             # once the database is ready, push it out to file.
 
-            hpkgBlocks = find_block($hpkgDatabase)
-            hpkgBlocks.each_index do |newBlockIndex|
-                startBlock = newBlocks[newBlockIndex][0]
-                endBlock = newBlocks[newBlockIndex][1]
+            if $hpkgDatabase.empty?
+                $hpkgDatabase += databaseData
+            elsif
+                hpkgBlocks = find_block($hpkgDatabase)
                 if not hpkgBlocks == nil
-                    if hpkgBlocks[newBlockIndex][2].include? nameinfo
-                                database_check(hpkgBlocks[newBlockIndex], databaseData, hpkgversioninfo)
+                    if $hpkgDatabase.include? nameinfo
+                        database_check(hpkgBlocks, databaseData, hpkgversioninfo, nameinfo)
                     else
                         $hpkgDatabase += databaseData
                     end
