@@ -129,28 +129,36 @@ def find_block(database)
     return newlist
 end
 
-def queue_check(database, databaseIndex, deplist, pkgver)
+#def queue_check(database, databaseIndex, deplist, pkgver)
+def queue_check(database, deplist, packageName, pkgver, packages)
     # check the dependency list of each file, for each
     # dependency, check if it is installed, if not, add
     # it to the list of files to be installed.
  
     checkCounter = databaseIndex
-    7.times do
-        if database[checkCounter] != nil
-            if database[checkCounter].include? "DEPLIST="
-                deplist = database[checkCounter].scan(/DEPLIST=(.+$)/)
-                deplist = deplist.join
-                deplist = deplist.split
-            end
-        end
-        if database[checkCounter] != nil
-            if database[checkCounter].include? "PKGVER="
-                if not database[checkCounter].include? "HPKGVER="
-                    pkgver = database[checkCounter].scan(/PKGVER=(.+$)/)
+    blocks = find_block(database)
+    blocks.each_with_index do |block, index|
+        if block.include? packageName
+            i = blocks[index][0]
+            endBlock = blocks[index][1]
+            while i <= endBlock
+                if database[i] != nil
+                    if database[i].include? "DEPLIST="
+                        deplist = database[i].scan(/DEPLIST=(.+$)/)
+                        deplist = deplist.join
+                        deplist = deplist.split
+                    end
                 end
+                if database[i] != nil
+                    if database[i].include? "PKGVER="
+                        if not database[i].include? "HPKGVER="
+                            pkgver = database[i].scan(/PKGVER=(.+$)/)
+                        end
+                    end
+                end
+            i += 1
             end
         end
-        checkCounter = checkCounter + 1
     end
     if deplist.empty? == false
         deplist.each do |dependency|
@@ -178,18 +186,14 @@ def package_queue(packages)
         deplist = []
         pkgver = nil
 
-        database.each_with_index do |line, databaseIndex|
-            if line.include? "HPKGNAME=#{packageName}"
-                queue_check(database, databaseIndex, deplist, pkgver)
-            end
-        end
+        queue_check(database, deplist, packageName, pkgver, packages)
     end
 end
 
 def is_installed(packageName, pkgver)
     #Query the database to check if the package is already installed on the system.
     dbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
-    if checkFile(dbFile, "#{packageName}.#{pkgver}") == true
+    if checkFile(dbFile, "#{packageName}//#{pkgver}") == true
         return true
     else
         return false
