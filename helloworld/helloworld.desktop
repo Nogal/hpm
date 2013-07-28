@@ -1,7 +1,0 @@
-[Desktop Entry]
-
-Name=Test
-Icon=help
-Comment=Test Application
-Exec=/usr/bin/helloworld
-Terminal=true

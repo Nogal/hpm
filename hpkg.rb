@@ -103,7 +103,7 @@ def gethpkg(packageName)
         end
     end
 
-    puts `wget -c -O /opt/hpkg/tmp/#{packageName}.hpkg #{mirror}/#{packageName}`
+    puts `wget -q -c -O /opt/hpkg/tmp/#{packageName}.hpkg #{mirror}/#{packageName}`
 end
 
 def checkFile( db_file, package )
@@ -152,11 +152,12 @@ def find_block(database)
     return newlist
 end
 
-#def queue_check(database, databaseIndex, deplist, pkgver)
-def queue_check(database, deplist, packageName, pkgver, packages)
+def queue_check(database, packageName, packages)
     # check the dependency list of each file, for each
     # dependency, check if it is installed, if not, add
     # it to the list of files to be installed.
+    deplist = []
+    pkgver = nil
  
     checkCounter = databaseIndex
     blocks = find_block(database)
@@ -206,10 +207,8 @@ def package_queue(packages)
     packages.each do |packageName|
         # Open the control file and read the pertinent information.
         database = IO.readlines("/etc/hpkg/pkginfo/hpkgDatabase.info")
-        deplist = []
-        pkgver = nil
 
-        queue_check(database, deplist, packageName, pkgver, packages)
+        queue_check(database, packageName, packages)
     end
 end
 
@@ -307,7 +306,7 @@ def database_check(hpkgBlock, databaseData, hpkgversioninfo, nameinfo)
                     checkVersion = hpkgversioninfo.scan(/HPKGVER=(.+$)/)
                     checkVersion = checkVersion.join
                     hpkgBlock.each_with_index do |block, hpkgIndex|
-                        if block.include? nameinfo
+                        if block[2] == nameinfo
                             n = hpkgBlock[hpkgIndex][0] 
                             hpkgStartBlock = hpkgBlock[hpkgIndex][0] 
                             hpkgEndBlock = hpkgBlock[hpkgIndex][1] 
@@ -358,12 +357,13 @@ def update()
     $hpkgDatabase = [] 
     mirrors.each do |mirror|
         mirror.chomp
-        puts `wget -c -O /etc/hpkg/pkginfo/newDatabase.info #{mirror}/package_database/package_database.info`
+        puts `wget -q -c -O /etc/hpkg/pkginfo/newDatabase.info #{mirror}/package_database/package_database.info`
         newDatabase = IO.readlines("/etc/hpkg/pkginfo/newDatabase.info")
         newDatabase = newDatabase.compact
     
         newBlocks = find_block(newDatabase)
         newBlocks.each_index do |newBlockIndex|
+            puts "Current Block: #{newBlocks[newBlockIndex]}"
             startBlock = newBlocks[newBlockIndex][0]
             endBlock = newBlocks[newBlockIndex][1]
 
@@ -409,8 +409,10 @@ def update()
             # once the database is ready, push it out to file.
 
             if $hpkgDatabase.empty?
+                puts "Trigger on: #{nameinfo}"
                 $hpkgDatabase += databaseData
-            elsif
+            else
+                puts "Trigger on: #{nameinfo}"
                 hpkgBlocks = find_block($hpkgDatabase)
                 if not hpkgBlocks == nil
                     if $hpkgDatabase.include? nameinfo
@@ -421,6 +423,7 @@ def update()
                 end
             end
         end
+        FileUtils.rm("/etc/hpkg/pkginfo/newDatabase.info")
     end
     hpkgDatabaseFile = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "w")
     hpkgDatabaseFile.puts  $hpkgDatabase
@@ -450,7 +453,7 @@ end
 def sourceinstall(packageName)
     # Do some mirror magic...
 
-    `wget -c -O /opt/hpkg/tmp/#{packageName}.hpkgbuild #{mirror}/source/#{packageName}.hpkgbuild`
+    `wget -q -c -O /opt/hpkg/tmp/#{packageName}.hpkgbuild #{mirror}/source/#{packageName}.hpkgbuild`
     `sh /opt/hpkg/tmp/#{packageName}.hkpgbuild`
 end
 
@@ -484,13 +487,18 @@ def install(packageName)
             pkgver = pkgver.join
         end
     end
-    desktopentry = "/opt/hpkg/tmp/#{packageName}/#{packageName}.desktop"
+
+    if not binfile == "N/A"
+        desktopentry = "/opt/hpkg/tmp/#{packageName}/#{packageName}.desktop"
+    end
 
     puts "Installing #{packageName}..."
 
     # Move BIN_FILE to BIN_PATH from .control file.
-    puts "Moving: #{binfile} from /opt/hpkg/tmp/#{packageName}/#{binfile} to #{binpath}"
-    hpkgmv(packageName, binfile, binpath)
+    if not binfile == "N/A"
+        puts "Moving: #{binfile} from /opt/hpkg/tmp/#{packageName}/#{binfile} to #{binpath}"
+        hpkgmv(packageName, binfile, binpath)
+    end
 
     # Run the control script
     puts "Running control script..."
@@ -503,7 +511,9 @@ def install(packageName)
             database.puts "#{packageName}\\#{pkgver}" }
            
     # Register packages within the database
-    FileUtils.mv(desktopentry, "/usr/share/applications/")
+    if not binfile == "N/A"
+        FileUtils.mv(desktopentry, "/usr/share/applications/")
+    end
     FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "/etc/hpkg/controls/")
 
     # And save information to uninstall with:
