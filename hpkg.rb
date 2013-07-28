@@ -117,7 +117,7 @@ end
 def exthpkg(packageName)
     # Extract the contents from the packaeg.
     puts "Extracting #{packageName}..."
-    puts `tar -C /opt/hpkg/tmp/ -xjf #{packageName}.hpkg`
+    puts `tar -C /opt/hpkg/tmp/ -xjf /opt/hpkg/tmp/#{packageName}.hpkg`
 end
 
 def find_block(database)
@@ -570,7 +570,7 @@ def repoinstall(packages)
 
     packages.each_with_index do |packageName, index|
         gethpkg(packageName)
-        puts "(#{index}/#{packages.length}) Getting #{packageName}"
+        puts "(#{index + 1}/#{packages.length}) Getting #{packageName}"
     end
 
     packages.each do |packageName|
