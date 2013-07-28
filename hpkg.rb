@@ -363,7 +363,6 @@ def update()
     
         newBlocks = find_block(newDatabase)
         newBlocks.each_index do |newBlockIndex|
-            puts "Current Block: #{newBlocks[newBlockIndex]}"
             startBlock = newBlocks[newBlockIndex][0]
             endBlock = newBlocks[newBlockIndex][1]
 
@@ -409,10 +408,8 @@ def update()
             # once the database is ready, push it out to file.
 
             if $hpkgDatabase.empty?
-                puts "Trigger on: #{nameinfo}"
                 $hpkgDatabase += databaseData
             else
-                puts "Trigger on: #{nameinfo}"
                 hpkgBlocks = find_block($hpkgDatabase)
                 if not hpkgBlocks == nil
                     if $hpkgDatabase.include? nameinfo
