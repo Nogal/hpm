@@ -103,7 +103,7 @@ def gethpkg(packageName)
         end
     end
 
-    puts `wget -q -c -O /opt/hpkg/tmp/#{packageName}.hpkg #{mirror}/#{packageName}`
+    puts `wget -q -c -O /opt/hpkg/tmp/#{packageName}.hpkg #{mirror}/#{packageName}.hpkg`
 end
 
 def checkFile( db_file, package )
@@ -572,9 +572,9 @@ def repoinstall(packages)
         gethpkg(packageName)
         puts "(#{index + 1}/#{packages.length}) Getting #{packageName}"
     end
+    puts ""
 
     packages.each do |packageName|
-        puts "Extracting #{packageName}..."
         exthpkg(packageName)
     end
 
