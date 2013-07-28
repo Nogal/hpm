@@ -78,8 +78,31 @@ def hpkgmv(packageName, source, dest)
     FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{source}", dest)
 end
 
-def gethpkg(packageName, mirror)
+def gethpkg(packageName)
     # Download the package from the mirror
+    databaseFile = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "r")
+    database = databaseFile.readlines
+    databaseFile.close
+    blocks = find_block(database)
+    mirror = nil
+    blocks.each_with_index do |block, index|
+        i = block[0]
+        endBlock = block[1]
+        packageTest = block[2].scan(/HPKGNAME=(.+$)/)
+        packageTest = packageTest.join
+        if packageTest = packageName
+            while i <= endBlock
+                if not database[i] == nil
+                    if database[i].include? "MIRROR="
+                        mirror = database[i].scan(/MIRROR=(.+$)/)
+                        mirror = mirror.join
+                    end
+                end
+            i += 1
+            end
+        end
+    end
+
     puts `wget -c -O /opt/hpkg/tmp/#{packageName}.hpkg #{mirror}/#{packageName}`
 end
 
@@ -247,7 +270,7 @@ def version_check(updateBlocks, installedPackageName, installedPackageVersion)
     updateBlocks.each_index do |index|
         i = updateBlocks[index][0]
         endBlock = updateBlocks[index][1]
-        checkPackageName = updateBlocks[index][2].scan(/HPKGNAME=(.+$)/
+        checkPackageName = updateBlocks[index][2].scan(/HPKGNAME=(.+$)/)
         checkPackageName = checkPackageName.join
         if checkPackageName == installedPackageName
             while i <= endBlock
@@ -335,7 +358,7 @@ def update()
     $hpkgDatabase = [] 
     mirrors.each do |mirror|
         mirror.chomp
-#        puts `wget -c -O /etc/hpkg/pkginfo/newDatabase.info #{mirror}/package_database/package_database.info`
+        puts `wget -c -O /etc/hpkg/pkginfo/newDatabase.info #{mirror}/package_database/package_database.info`
         newDatabase = IO.readlines("/etc/hpkg/pkginfo/newDatabase.info")
         newDatabase = newDatabase.compact
     
@@ -414,7 +437,7 @@ def update()
         installedPackageName = installedPackageName.join
         installedPackageVersion = line.scan(/.+\\(.+$)/)
         installedPackageVersion = installedPackageVersion.join
-        updateBlocks = find_blocks($hpkgDatabase)
+        updateBlocks = find_block($hpkgDatabase)
         if $hpkgDatabase.include? installedPackageName
                 version_check(updateBlocks, installedPackageName, installedPackageVersion)
         end
@@ -539,7 +562,7 @@ def repoinstall(packages)
     # Get the required packages and extract them, then install them.
 
     packages.each_with_index do |packageName, index|
-        gethpkg(packageName, mirror)
+        gethpkg(packageName)
         puts "(#{index}/#{packages.length}) Getting #{packageName}"
     end
 
@@ -596,7 +619,7 @@ case action
         puts "Proceed with installation? "
         STDOUT.flush
         decision = STDIN.gets.chomp
-        if proceed == "Y" || proceed == "y"
+        if decision == "Y" || decision == "y"
             repoinstall(packages)
         else
             puts "Aborting Installation"
