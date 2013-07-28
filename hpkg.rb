@@ -159,18 +159,21 @@ def queue_check(database, packageName, packages)
     deplist = []
     pkgver = nil
  
-    checkCounter = databaseIndex
     blocks = find_block(database)
     blocks.each_with_index do |block, index|
-        if block.include? packageName
+        checkPackage = block[2].scan(/HPKGNAME=(.+$)/)
+        checkPackage = checkPackage.join
+        if packages.include?(checkPackage)
             i = blocks[index][0]
             endBlock = blocks[index][1]
             while i <= endBlock
                 if database[i] != nil
                     if database[i].include? "DEPLIST="
-                        deplist = database[i].scan(/DEPLIST=(.+$)/)
-                        deplist = deplist.join
-                        deplist = deplist.split
+                        newdeps = database[i].scan(/DEPLIST=(.+$)/)
+                        newdeps = newdeps.join
+                        newdeps = newdeps.split
+                        deplist += newdeps
+                        puts "deplist: #{deplist}"
                     end
                 end
                 if database[i] != nil
@@ -184,12 +187,18 @@ def queue_check(database, packageName, packages)
             end
         end
     end
+    puts "Trigger 0"
     if deplist.empty? == false
+        puts "Trigger 1"
         deplist.each do |dependency|
+            puts "dependency: #{dependency}"
+            puts "Trigger 2"
                 # I think there is an error in this part... it doens't feel
                 # right.
             if is_installed(dependency, pkgver) == false
+                puts "Trigger 3"
                 if not packages.include?(dependency)
+                    puts "Trigger 4"
                     packages.unshift(dependency)
                     package_queue(packages)
                 end
@@ -209,6 +218,7 @@ def package_queue(packages)
         database = IO.readlines("/etc/hpkg/pkginfo/hpkgDatabase.info")
 
         queue_check(database, packageName, packages)
+        puts "packages: #{packages}"
     end
 end
 
@@ -651,5 +661,10 @@ case action
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
+    when "test"
+        package_queue(packages)
+        packageDisplay = packages.join(" ") 
+        puts "Packages to be installed:\n#{packageDisplay}\n"
+        puts "Proceed with installation? "
     else helpPage
 end
