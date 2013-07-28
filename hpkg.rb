@@ -173,7 +173,6 @@ def queue_check(database, packageName, packages)
                         newdeps = newdeps.join
                         newdeps = newdeps.split
                         deplist += newdeps
-                        puts "deplist: #{deplist}"
                     end
                 end
                 if database[i] != nil
@@ -187,18 +186,10 @@ def queue_check(database, packageName, packages)
             end
         end
     end
-    puts "Trigger 0"
     if deplist.empty? == false
-        puts "Trigger 1"
         deplist.each do |dependency|
-            puts "dependency: #{dependency}"
-            puts "Trigger 2"
-                # I think there is an error in this part... it doens't feel
-                # right.
             if is_installed(dependency, pkgver) == false
-                puts "Trigger 3"
                 if not packages.include?(dependency)
-                    puts "Trigger 4"
                     packages.unshift(dependency)
                     package_queue(packages)
                 end
@@ -218,7 +209,6 @@ def package_queue(packages)
         database = IO.readlines("/etc/hpkg/pkginfo/hpkgDatabase.info")
 
         queue_check(database, packageName, packages)
-        puts "packages: #{packages}"
     end
 end
 
@@ -633,13 +623,13 @@ packages = ARGV
 # Decide which course of action to take
 case action
     when "install"
-#        package_queue(packages)
+        package_queue(packages)
         packageDisplay = packages.join(" ") 
-        puts "Packages to be installed:\n#{packageDisplay}\n"
-        puts "Proceed with installation? "
+        puts "Packages to be installed:\n\n#{packageDisplay}\n"
+        puts "\nProceed with installation? (y/n)"
         STDOUT.flush
         decision = STDIN.gets.chomp
-        if decision == "Y" || decision == "y"
+        if decision == "Y" || decision == "y" || decision == "yes"
             repoinstall(packages)
         else
             puts "Aborting Installation"
@@ -647,13 +637,13 @@ case action
     when "remove"; packages.each {|package| remove(package)}
     when "source-install"; packages.each {|package| sourceinstall(package)}
     when "local-install"
-#        package_queue(packages)
+        package_queue(packages)
         packageDisplay = packages.join(" ") 
-        puts "Packages to be installed:\n#{packageDisplay}\n"
-        puts "Proceed with installation? "
+        puts "Packages to be installed:\n\n#{packageDisplay}\n"
+        puts "\nProceed with installation? (y/n)"
         STDOUT.flush
         decision = STDIN.gets.chomp
-        if decision == "Y" || decision == "y"
+        if decision == "Y" || decision == "y" || decision == "yes"
             localinstall(packages)
         else
             puts "Aborting Installation"
@@ -661,10 +651,5 @@ case action
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
-    when "test"
-        package_queue(packages)
-        packageDisplay = packages.join(" ") 
-        puts "Packages to be installed:\n#{packageDisplay}\n"
-        puts "Proceed with installation? "
     else helpPage
 end
