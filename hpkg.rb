@@ -242,8 +242,10 @@ def log_uninstall(packageName, binfile, binpath, desktopentry)
     uninstallInfo.delete("#{binfile}.desktop")
     uninstallInfo.delete("#{binfile}.hpkg")
 
-    uninstallDesktop = desktopentry.scan(/\/opt\/hpkg\/tmp\/#{packageName}\/(.+$)/)
-    uninstallDesktop = uninstallDesktop.join
+    if not desktopentry == nil
+        uninstallDesktop = desktopentry.scan(/\/opt\/hpkg\/tmp\/#{packageName}\/(.+$)/)
+        uninstallDesktop = uninstallDesktop.join
+    end
 
     uninstallInfo.push("usr/share/applications/#{uninstallDesktop}")
     uninstallInfo.push("etc/hpkg/controls/#{packageName}.control")
@@ -460,6 +462,8 @@ def install(packageName)
     # script, and register the package # in the local database.
 
     # Open the control file and read the pertinent information.
+
+    puts "Installing #{packageName}..."
     data = []        
     f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
     f.each_line {|line| data.push line }
@@ -489,8 +493,6 @@ def install(packageName)
         desktopentry = "/opt/hpkg/tmp/#{packageName}/#{packageName}.desktop"
     end
 
-    puts "Installing #{packageName}..."
-
     # Move BIN_FILE to BIN_PATH from .control file.
     if not binfile == "N/A"
         puts "Moving: #{binfile} from /opt/hpkg/tmp/#{packageName}/#{binfile} to #{binpath}"
@@ -499,7 +501,7 @@ def install(packageName)
 
     # Run the control script
     puts "Running control script..."
-    puts `chmod +x #{conscript}`
+    puts `chmod +x /opt/hpkg/tmp/#{packageName}/#{conscript}`
     puts `/opt/hpkg/tmp/#{packageName}/#{conscript}`
 
     # Register package within the database
@@ -517,7 +519,9 @@ def install(packageName)
     log_uninstall(packageName, binfile, binpath, desktopentry)
 
     # And make the program executable.
-    puts `chmod +x #{binpath}/#{binfile}`
+    if not binfile == "N/A" || binfile == ""	
+        puts `chmod +x #{binpath}/#{binfile}`
+    end
 end
 
 def remove(packageName)
@@ -570,7 +574,7 @@ def repoinstall(packages)
 
     packages.each_with_index do |packageName, index|
         gethpkg(packageName)
-        puts "(#{index + 1}/#{packages.length}) Getting #{packageName}"
+        puts "(#{index + 1}/#{packages.length}) Getting #{packageName}..."
     end
     puts ""
 
@@ -579,7 +583,6 @@ def repoinstall(packages)
     end
 
     packages.each do |packageName|
-        puts "Installing #{packageName}..."
         install(packageName)
     end
 end
@@ -605,8 +608,7 @@ def localinstall(packages)
         if packageName.include? ".hpkg"
             packageName = packageName.chomp('.hpkg')
         end
-        puts "Installing #{packageName}..."
-        install(packageName)
+            install(packageName)
     end
 end
 
