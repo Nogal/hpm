@@ -236,7 +236,7 @@ def is_installed(packageName, pkgver)
     end
 end
 
-def log_uninstall(packageName, binfile, binpath, desktopentry)
+def log_installinfo(packageName, binfile, binpath, desktopentry)
     # Create a list of files and directories installed by the package.
     # eliminate the extra information, and write it to a file to be
     # called during the remove function. Jezzirolk deserves some bacon.
@@ -282,23 +282,45 @@ def log_uninstall(packageName, binfile, binpath, desktopentry)
         uninstallDesktop = uninstallDesktop.join
     end
 
-    uninstallInfo.push("usr/share/applications/#{uninstallDesktop}")
-    uninstallInfo.push("etc/hpkg/controls/#{packageName}.control")
+    uninstallInfo.push("/usr/share/applications/#{uninstallDesktop}")
+    uninstallInfo.push("/etc/hpkg/controls/#{packageName}.control")
 
     if not binfile == "" || binfile == "N/A"
         uninstallBinpath = binpath.reverse
         uninstallBinpath = uninstallBinpath.chop
         uninstallBinpath = uninstallBinpath.reverse
-        uninstallBinfile = "#{uninstallBinpath}/#{binfile}"
-        puts "uninstallBinfile: #{uninstallBinfile}"
+        uninstallBinfile = "/#{uninstallBinpath}/#{binfile}"
         uninstallInfo.push(uninstallBinfile)
     end
 
+    fileList = Array.new
     uFile = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "w")
     uninstallInfo.each do |line|
         uFile.puts line
+        line.chomp!
+        dirCheck = line.length - 1
+        if not dirCheck == line.rindex("/")
+            if not line == "#{packageName}.desktop"
+                fileList.push(line)
+            end
+        end
     end
     uFile.close
+
+    md5List = Array.new
+    fileList.each do |file|
+        md5info = `md5sum #{file}`
+        md5info = md5info.scan(/(.+)\ .+$/)
+        md5info = md5info.join
+        md5info = file + " -- " +md5info
+        md5List.push(md5info)
+    end
+
+    upgradeFile = File.open("/etc/hpkg/pkdb/upinfo/#{packageName}.upinfo", "w")
+    md5List.each do |line|
+        upgradeFile.puts line
+    end
+    upgradeFile.close
 end
 
 def version_check(updateBlocks, installedPackageName, installedPackageVersion)
@@ -554,7 +576,7 @@ def install(packageName)
     FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "/etc/hpkg/controls/")
 
     # And save information to uninstall with:
-    log_uninstall(packageName, binfile, binpath, desktopentry)
+    log_installinfo(packageName, binfile, binpath, desktopentry)
 
     # And make the program executable.
     if not binfile == "N/A" || binfile == ""	
