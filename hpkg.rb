@@ -78,7 +78,7 @@ def hpkgmv(packageName, source, dest)
     FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{source}", dest)
 end
 
-def gethpkg(packageName)
+def gethpkg(packageName, current, total)
     # Download the package from the mirror
     databaseFile = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "r")
     database = databaseFile.readlines
@@ -104,6 +104,35 @@ def gethpkg(packageName)
     end
 
     puts `wget -q -c -O /opt/hpkg/tmp/#{packageName}.hpkg #{mirror}/#{packageName}.hpkg`
+
+    puts "(#{current}/#{total}) Getting #{packageName}..."
+    sha512check = `sha512sum /opt/hpkg/tmp/#{packageName}.hpkg`
+    sha512check = sha512check.scan(/(.+)\  .+$/)
+    sha512check = sha512check.join
+    sha512check = sha512check.chomp
+    sha512verify = nil
+    blocks.each do |block|
+        nameCheck = block[2].scan(/HPKGNAME=(.+$)/)
+        nameCheck = nameCheck.join
+        if nameCheck == packageName
+            i = block[0]
+            endBlock = block[1]
+            while i <= endBlock
+                if database[i].include?("SHA512SUM")
+                    sha512verify = database[i].scan(/SHA512SUM=(.+$)/) 
+                    sha512verify = sha512verify.join
+                    sha512verify = sha512verify.chomp
+                end
+            i += 1
+            end
+        end
+    end
+
+    if not sha512check.eql? sha512verify
+        puts "Bad sha512sum: #{packageName}\nRetrying..."
+        FileUtils.rm("/opt/hpkg/tmp/#{packageName}.hpkg")
+        gethpkg(packageName, current, total)
+    end
 end
 
 def checkFile( db_file, package )
@@ -127,10 +156,12 @@ def find_block(database)
     blocklist = []
     namelist = []
     database.each_with_index do |line, databaseIndex|
-        if line.include? "HPKGNAME="
-            pkgname = line.chomp
-            blocklist.push(databaseIndex)
-            namelist.push(pkgname)
+        if not line == nil
+            if line.include? "HPKGNAME="
+                pkgname = line.chomp
+                blocklist.push(databaseIndex)
+                namelist.push(pkgname)
+            end
         end
     end
 
@@ -448,7 +479,7 @@ def update()
                         depinfo = newDatabase[i]
                         depinfo = depinfo.chomp
                     end
-                    if newDatabase[i].include? "MD5SUM="
+                    if newDatabase[i].include? "SHA512SUM="
                         hashinfo = newDatabase[i]
                         hashinfo = hashinfo.chomp
                     end
@@ -648,12 +679,17 @@ def repoinstall(packages)
     # CHECK MIRROR STATUS ..... somehow
 
     # Get the required packages and extract them, then install them.
+    
+    databaseFile = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "r")
+    database = databaseFile.readlines
+    databaseFile.close
+    blocks = find_block(database)
 
+    totalPackages = packages.length
     packages.each_with_index do |packageName, index|
-        gethpkg(packageName)
-        puts "(#{index + 1}/#{packages.length}) Getting #{packageName}..."
+        count = index + 1
+        gethpkg(packageName, count, totalPackages)
     end
-    puts ""
 
     packages.each do |packageName|
         exthpkg(packageName)
