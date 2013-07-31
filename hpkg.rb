@@ -156,7 +156,7 @@ def queue_check(database, packageName, packages)
     # check the dependency list of each file, for each
     # dependency, check if it is installed, if not, add
     # it to the list of files to be installed.
-    deplist = []
+    deplist = Array.new
     pkgver = nil
  
     blocks = find_block(database)
@@ -175,23 +175,35 @@ def queue_check(database, packageName, packages)
                         deplist += newdeps
                     end
                 end
-                if database[i] != nil
-                    if database[i].include? "PKGVER="
-                        if not database[i].include? "HPKGVER="
-                            pkgver = database[i].scan(/PKGVER=(.+$)/)
-                        end
-                    end
-                end
             i += 1
             end
         end
-    end
-    if deplist.empty? == false
-        deplist.each do |dependency|
-            if is_installed(dependency, pkgver) == false
-                if not packages.include?(dependency)
-                    packages.unshift(dependency)
-                    package_queue(packages)
+        if deplist.empty? == false
+            deplist.each do |dependency, pkgver|
+                blocks.each_with_index do |block, index|
+                    namecheck = block[2].scan(/HPKGNAME=(.+$)/)
+                    namecheck = namecheck.join
+                    if dependency == namecheck
+                        i = block[0]
+                        endBlock = block[1]
+                        while i <= endBlock
+                            if database[i] != nil
+                                if database[i].include? "PKGVER="
+                                    if not database[i].include? "HPKGVER="
+                                        pkgver = database[i].scan(/PKGVER=(.+$)/)
+                                        pkgver = pkgver.join
+                                        if not is_installed(dependency, pkgver)
+                                            if not packages.include?(dependency)
+                                                packages.unshift(dependency)
+                                                package_queue(packages)
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        i += 1
+                        end
+                    end
                 end
             end
         end
@@ -216,8 +228,10 @@ def is_installed(packageName, pkgver)
     #Query the database to check if the package is already installed on the system.
     dbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
     if checkFile(dbFile, "#{packageName}//#{pkgver}") == true
+        dbFile.close
         return true
     else
+        dbFile.close
         return false
     end
 end
@@ -237,10 +251,31 @@ def log_uninstall(packageName, binfile, binpath, desktopentry)
         uninstallInfo.push(entry)
     end
     uninstallInfo.delete(binfile)
-    uninstallInfo.delete("#{binfile}.control")
-    uninstallInfo.delete("#{binfile}.conscript")
-    uninstallInfo.delete("#{binfile}.desktop")
-    uninstallInfo.delete("#{binfile}.hpkg")
+    i = 0
+    endFile = uninstallInfo.length
+    while i <= endFile
+        if not uninstallInfo[i] == nil
+            if uninstallInfo[i].include? ".conscript"
+                uninstallInfo.delete(uninstallInfo[i]) 
+            end
+        end
+       if not uninstallInfo[i] == nil
+            if uninstallInfo[i].include? ".desktop"
+                uninstallInfo.delete(uninstallInfo[i]) 
+            end
+       end
+       if not uninstallInfo[i] == nil
+            if uninstallInfo[i].include? ".hpkg"
+                uninstallInfo.delete(uninstallInfo[i]) 
+            end
+        end
+        if not uninstallInfo[i] == nil
+            if uninstallInfo[i].include? ".control"
+                uninstallInfo.delete(uninstallInfo[i]) 
+            end
+        end
+        i += 1
+    end
 
     if not desktopentry == nil
         uninstallDesktop = desktopentry.scan(/\/opt\/hpkg\/tmp\/#{packageName}\/(.+$)/)
@@ -250,11 +285,14 @@ def log_uninstall(packageName, binfile, binpath, desktopentry)
     uninstallInfo.push("usr/share/applications/#{uninstallDesktop}")
     uninstallInfo.push("etc/hpkg/controls/#{packageName}.control")
 
-    uninstallBinpath = binpath.reverse
-    uninstallBinpath = uninstallBinpath.chop
-    uninstallBinpath = uninstallBinpath.reverse
-    uninstallBinfile = "#{uninstallBinpath}/#{binfile}"
-    uninstallInfo.push(uninstallBinfile)
+    if not binfile == "" || binfile == "N/A"
+        uninstallBinpath = binpath.reverse
+        uninstallBinpath = uninstallBinpath.chop
+        uninstallBinpath = uninstallBinpath.reverse
+        uninstallBinfile = "#{uninstallBinpath}/#{binfile}"
+        puts "uninstallBinfile: #{uninstallBinfile}"
+        uninstallInfo.push(uninstallBinfile)
+    end
 
     uFile = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "w")
     uninstallInfo.each do |line|
@@ -507,7 +545,7 @@ def install(packageName)
     # Register package within the database
     puts "Registering packgages in database"
     open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database|
-            database.puts "#{packageName}\\#{pkgver}" }
+            database.puts "#{packageName}//#{pkgver}" }
            
     # Register packages within the database
     if not binfile == "N/A"
@@ -560,6 +598,23 @@ def remove(packageName)
             FileUtils.rmdir(directory)
         end
     end
+    
+    # Delete the uinfo file and database entry
+    FileUtils.rm("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo")
+    dbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
+    newDatabase = dbFile.readlines
+    dbFile.close
+    newDatabase.each do |line|
+        if line.include? packageName
+            newDatabase.delete(line)
+        end
+    end
+    dbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "w")
+    newDatabase.each do |line|
+        dbFile.puts line
+    end
+    dbFile.close
+     
 end
 
 def repoinstall(packages)
@@ -650,5 +705,6 @@ case action
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
+    when "test"; packages.each {|package| is_installed(package, "0.3.7")}
     else helpPage
 end
