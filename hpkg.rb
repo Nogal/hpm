@@ -371,9 +371,16 @@ def version_check(updateBlocks, installedPackageName, installedPackageVersion)
                 if not $hpkgDatabase[i] == nil
                     if $hpkgDatabase[i].include? "PKGVER="
                         if not $hpkgDatabase[i].include? "HPKGVER="
-                            repoCheckVersion = $hpkgDatabase[repoCheckCounter].scan(/PKGVER=(.+$)/)
+                            repoCheckVersion = $hpkgDatabase[i].scan(/PKGVER=(.+$)/)
+                            repoCheckVersion = repoCheckVersion.join
+                            repoCheckVersion = repoCheckVersion.scan(/\d+/)
+                            repoCheckVersion = repoCheckVersion.join
+                            installedPackageVersion = installedPackageVersion.scan(/\d+/)  
+                            installedPackageVersion = installedPackageVersion.join
                             if repoCheckVersion != installedPackageVersion
-                                $updateDatabase.push(installedPackageName)
+                                if not $updateDatabase.include?(installedPackageName)
+                                    $updateDatabase.push(installedPackageName)
+                                end
                             end
                         end
                     end
@@ -527,18 +534,22 @@ def update()
 
     pkdbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
     pkdbFile.each_with_index do |line, pkdbIndex|
-        installedPackageName = line.scan(/(.+)\\/)
+        line.chomp!
+        installedPackageName = line.scan(/(.+)\/\//)
         installedPackageName = installedPackageName.join
-        installedPackageVersion = line.scan(/.+\\(.+$)/)
+        installedPackageVersion = line.scan(/.+\/\/(.+$)/)
         installedPackageVersion = installedPackageVersion.join
         updateBlocks = find_block($hpkgDatabase)
-        if $hpkgDatabase.include? installedPackageName
-            version_check(updateBlocks, installedPackageName, installedPackageVersion)
+        $hpkgDatabase.each_index do |index|
+            if $hpkgDatabase[index].include? installedPackageName
+                version_check(updateBlocks, installedPackageName, installedPackageVersion)
+            end
         end
     end
     updateDatabaseFile = File.open("/etc/hpkg/pkginfo/updateDatabase.info", "w")
     updateDatabaseFile.puts $updateDatabase
     updateDatabaseFile.close
+
 end
 
 def sourceinstall(packageName)
@@ -599,7 +610,7 @@ def install(packageName)
     # Register package within the database
     puts "Registering packgages in database"
     open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database|
-            database.puts "#{packageName}//#{pkgver}" }
+            database.puts "#{packageName}/pkgv/#{pkgver}" }
            
     # Register packages within the database
     if not binfile == "N/A"
