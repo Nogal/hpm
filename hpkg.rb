@@ -118,10 +118,12 @@ def gethpkg(packageName, current, total)
             i = block[0]
             endBlock = block[1]
             while i <= endBlock
-                if database[i].include?("SHA512SUM")
-                    sha512verify = database[i].scan(/SHA512SUM=(.+$)/) 
-                    sha512verify = sha512verify.join
-                    sha512verify = sha512verify.chomp
+                if not database[i] == nil
+                    if database[i].include?("SHA512SUM")
+                        sha512verify = database[i].scan(/SHA512SUM=(.+$)/) 
+                        sha512verify = sha512verify.join
+                        sha512verify = sha512verify.chomp
+                    end
                 end
             i += 1
             end
@@ -340,7 +342,7 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
 
     md5List = Array.new
     fileList.each do |file|
-        md5info = `md5sum #{file}`
+        md5info = `md5sum /#{file}`
         md5info = md5info.scan(/(.+)\ .+$/)
         md5info = md5info.join
         md5info = file + " -- " +md5info
@@ -379,7 +381,6 @@ def version_check(updateBlocks, installedPackageName, installedPackageVersion)
                 i += 1
             end
         end
-        repoCheckCounter = repoCheckCounter + 1
     end
 end
 
@@ -532,6 +533,7 @@ def update()
         installedPackageVersion = installedPackageVersion.join
         updateBlocks = find_block($hpkgDatabase)
         if $hpkgDatabase.include? installedPackageName
+            puts
                 version_check(updateBlocks, installedPackageName, installedPackageVersion)
         end
     end
@@ -684,11 +686,34 @@ def repoinstall(packages)
     database = databaseFile.readlines
     databaseFile.close
     blocks = find_block(database)
+    pkgver = nil
 
     totalPackages = packages.length
     packages.each_with_index do |packageName, index|
-        count = index + 1
-        gethpkg(packageName, count, totalPackages)
+        blocks.each do |block|
+            if block[2].include? packageName
+                i = block[0]
+                endBlock = block[1]
+                while i <= endBlock
+                    if not database[i] == nil
+                        if database[i].include?("PKGVER=")
+                            if not database[i].include?("HPKGVER=")
+                                pkgver = database[i].scan(/PKGVER=(.+$)/)
+                                pkgver = pkgver.join
+                            end
+                        end
+                    end
+                i += 1
+                end
+            end
+        end
+        if is_installed(packageName, pkgver)
+            puts "#{packageName} is already at the newest version."
+            packages.delete(packageName)
+        else
+            count = index + 1
+            gethpkg(packageName, count, totalPackages)
+        end
     end
 
     packages.each do |packageName|
