@@ -610,7 +610,7 @@ def install(packageName)
     # Register package within the database
     puts "Registering packgages in database"
     open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database|
-            database.puts "#{packageName}/pkgv/#{pkgver}" }
+            database.puts "#{packageName}//#{pkgver}" }
            
     # Register packages within the database
     if not binfile == "N/A"
