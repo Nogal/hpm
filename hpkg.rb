@@ -31,14 +31,14 @@ def helpPage()
     puts " hpkg (options) {package}"
     puts ""
     puts "Options include:"
-    puts " install : install selected binary package(s) from repository"
-    puts " source-install : install selected package(s) from source"
-    puts " local-install : install selected local package(s)"
-    puts " remove : remove selected package(s)"
-    puts " clean : clean the cache"
-    puts " update : update the cache (CURRENTLY UNAVAILABLE)"
-    puts " upgrade : upgrade current packages (CURRENTLY UNAVAILABLE)"
-    puts " help : view this help page"
+    puts " install        :   install selected binary package(s) from repository"
+    puts " source-instal  :   install selected package(s) from source"
+    puts " local-install  :   install selected local package(s)"
+    puts " remove         :   remove selected package(s)"
+    puts " clean          :   clean the cache"
+    puts " update         :   update the cache (CURRENTLY UNAVAILABLE)"
+    puts " upgrade        :   upgrade current packages (CURRENTLY UNAVAILABLE)"
+    puts " help           :   view this help page"
     puts ""
     return 0
 end
@@ -533,8 +533,7 @@ def update()
         installedPackageVersion = installedPackageVersion.join
         updateBlocks = find_block($hpkgDatabase)
         if $hpkgDatabase.include? installedPackageName
-            puts
-                version_check(updateBlocks, installedPackageName, installedPackageVersion)
+            version_check(updateBlocks, installedPackageName, installedPackageVersion)
         end
     end
     updateDatabaseFile = File.open("/etc/hpkg/pkginfo/updateDatabase.info", "w")
