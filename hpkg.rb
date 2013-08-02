@@ -36,8 +36,8 @@ def helpPage()
     puts " local-install  :   install selected local package(s)"
     puts " remove         :   remove selected package(s)"
     puts " clean          :   clean the cache"
-    puts " update         :   update the cache (CURRENTLY UNAVAILABLE)"
-    puts " upgrade        :   upgrade current packages (CURRENTLY UNAVAILABLE)"
+    puts " update         :   update the cache" 
+    puts " upgrade        :   upgrade current packages"
     puts " help           :   view this help page"
     puts ""
     return 0
@@ -329,12 +329,16 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
     fileList = Array.new
     uFile = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "w")
     uninstallInfo.each do |line|
-        uFile.puts line
-        line.chomp!
-        dirCheck = line.length - 1
-        if not dirCheck == line.rindex("/")
-            if not line == "#{packageName}.desktop"
-                fileList.push(line)
+        line = line.chomp
+        if not line == "#{packageName}.desktop"
+            uFile.puts line
+        end
+        if not line == nil
+            dirCheck = line.length - 1
+            if not dirCheck == line.rindex("/")
+                if not line == "#{packageName}.desktop"
+                    fileList.push(line)
+                end
             end
         end
     end
@@ -559,7 +563,7 @@ def sourceinstall(packageName)
     `sh /opt/hpkg/tmp/#{packageName}.hkpgbuild`
 end
 
-def install(packageName)
+def install(packageName, pkgUpgrade)
     # Open the .control file # to obtain the  necessary information for the 
     # package, move the exectuable to the correct path, run the control 
     # script, and register the package # in the local database.
@@ -600,6 +604,22 @@ def install(packageName)
     if not binfile == "N/A"
         puts "Moving: #{binfile} from /opt/hpkg/tmp/#{packageName}/#{binfile} to #{binpath}"
         hpkgmv(packageName, binfile, binpath)
+    end
+
+    # move the directories to their correct locations.
+    directories = Array.new
+    dirList = Array.new
+    directories = `ls -pm /opt/hpkg/tmp/#{packageName}`    
+    directories = directories.split(/, /)
+    directories[-1] = directories[-1].chomp!
+    directories.each do |check|
+        dirCheck = check.length - 1
+        if dirCheck == check.rindex("/")
+            dirList.push(check)
+        end
+    end
+    dirList.each do |directory|
+        puts `cp -HanT /opt/hpkg/tmp/#{packageName}/#{directory} /#{directory}`
     end
 
     # Run the control script
@@ -731,7 +751,7 @@ def repoinstall(packages)
     end
 
     packages.each do |packageName|
-        install(packageName)
+        install(packageName, 0)
     end
 end
 
@@ -756,7 +776,7 @@ def localinstall(packages)
         if packageName.include? ".hpkg"
             packageName = packageName.chomp('.hpkg')
         end
-            install(packageName)
+            install(packageName, 0)
     end
 end
 
@@ -798,6 +818,5 @@ case action
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
-    when "test"; packages.each {|package| is_installed(package, "0.3.7")}
     else helpPage
 end
