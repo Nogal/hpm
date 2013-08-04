@@ -52,9 +52,11 @@ sleep 1
 
 echo "Installation proceeding."
 
-mkdir -p /etc/hpkg/
-mkdir -p /etc/hpkg/
-mkdir -p /opt/hpkg/
+mkdir -p /etc/hpkg/controls
+mkdir -p /etc/hpkg/mirrors
+mkdir -p /etc/hpkg/pkdb/uinfo
+mkdir -p /etc/hpkg/pkginfo
+mkdir -p /opt/hpkg/tmp
 
 wget -c -O /tmp/hpkg.tar.gz http://www.descentos.net/repository/hpkg-current.tar.gz
 
@@ -89,6 +91,7 @@ hpkg update
 
 echo "Installing HPKG base packages."
 
+complete -W install\ remove\ source-install\ local-install\ clean\ update\ upgrade hpkg
 hpkg install hpkg_meta
 
 echo "Cleaning up..."
