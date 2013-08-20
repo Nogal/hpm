@@ -269,10 +269,10 @@ def is_installed(packageName, pkgver)
     end
 end
 
-def log_installinfo(packageName, binfile, binpath, desktopentry)
+def log_installinfo(packageName, binfile, binpath, desktopentry, conffile)
     # Create a list of files and directories installed by the package.
     # eliminate the extra information, and write it to a file to be
-    # called during the remove function. Jezzirolk deserves some bacon.
+    # called during the remove function and upgrade functions. 
 
     uninstallInfo = []
     baseUninstallInfo = `tar -tf /opt/hpkg/tmp/#{packageName}.hpkg`
@@ -286,6 +286,7 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
     uninstallInfo.delete(binfile)
     i = 0
     endFile = uninstallInfo.length
+    confbool = 0
     while i <= endFile
         if not uninstallInfo[i] == nil
             if uninstallInfo[i].include? ".conscript"
@@ -307,6 +308,12 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
                 uninstallInfo.delete(uninstallInfo[i]) 
             end
         end
+        if not uninstallInfo[i] == nil
+            if uninstallInfo[i].include? ".conflist"
+		confbool = 1
+                uninstallInfo.delete(uninstallInfo[i]) 
+            end
+	end
         i += 1
     end
 
@@ -358,6 +365,8 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
         upgradeFile.puts line
     end
     upgradeFile.close
+
+    return confbool
 end
 
 def version_check(updateBlocks, installedPackageName, installedPackageVersion)
@@ -579,6 +588,7 @@ def install(packageName, pkgUpgrade)
     binpath = nil
     conscript = nil
     pkgver = nil
+    conffile = nil
     data.each do |line|
         line.chomp
         if line.include? "BIN_FILE="
@@ -639,7 +649,10 @@ def install(packageName, pkgUpgrade)
     FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "/etc/hpkg/controls/")
 
     # And save information to uninstall with:
-    log_installinfo(packageName, binfile, binpath, desktopentry)
+    confbool = log_installinfo(packageName, binfile, binpath, desktopentry)
+    if confbool = 1 
+    	FileUtils.cp("/opt/hpkg/tmp/#{packageName}/#{packageName}.conflist", "/etc/hpkg/conflist/")
+    end
 
     # And make the program executable.
     if not binfile == "N/A" || binfile == ""	
@@ -647,7 +660,7 @@ def install(packageName, pkgUpgrade)
     end
 end
 
-def remove(packageName)
+def removeinfo(packageName)
     # Read the uninstall data for the package to be removed. Remove the
     # files which were installed, then check the directories in which they
     # were installed to. If thoso directories are empty, remove those too.
@@ -667,6 +680,11 @@ def remove(packageName)
             fileList.push(entry)
         end
     end
+
+    remove(dirList, fileList)
+end
+
+def remove(dirList, fileList)
 
     # Delete all the files
     fileList.each do |file|
@@ -700,6 +718,49 @@ def remove(packageName)
     end
     dbFile.close
      
+end
+
+def upgrade()
+
+    packages = []
+    upgradeFile = File.open("/etc/hpkg/pkginfo/updateDatabase.info", "r")
+    upgradeFile.each_line {|line| packages.push line }
+    upgradeFile.close
+
+    packages.each do |packageName|
+        uninstallInfo = []
+        dirList = []
+        fileList = []
+        removefile = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "r")
+        removefile.each_line {|line| uninstallInfo.push line }
+        removefile.close
+        uninstallInfo.each do |entry|
+            entry.chop!
+            dirCheck = entry.length - 1
+            if dirCheck == entry.rindex("/")
+                dirList.push(entry)
+            else
+                fileList.push(entry)
+            end
+        end
+
+        if File.exists?("/etc/hpkg/conflist/#{packageName}.conflist"
+            configInfo = []
+            configFile = File.open("/etc/hpkg/conflist/#{packageName}.conflist"
+            configFile.each_line {|line| configInfo.push line }
+            configFile.close
+
+            configInfo.each do |configData|
+                fileList.each do |file|
+                    if configData == file
+                        fileList.delete(configData)
+                    end
+                end
+            end
+        end
+    
+        remove(dirList, fileList)
+    end
 end
 
 def repoinstall(packages)
@@ -801,7 +862,7 @@ case action
         else
             puts "Aborting Installation"
         end
-    when "remove"; packages.each {|package| remove(package)}
+    when "remove"; packages.each {|package| removeinfo(package)}
     when "source-install"; packages.each {|package| sourceinstall(package)}
     when "local-install"
         package_queue(packages)
