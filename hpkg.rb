@@ -269,7 +269,7 @@ def is_installed(packageName, pkgver)
     end
 end
 
-def log_installinfo(packageName, binfile, binpath, desktopentry, conffile)
+def log_installinfo(packageName, binfile, binpath, desktopentry)
     # Create a list of files and directories installed by the package.
     # eliminate the extra information, and write it to a file to be
     # called during the remove function and upgrade functions. 
@@ -650,7 +650,7 @@ def install(packageName)
 
     # And save information to uninstall with:
     confbool = log_installinfo(packageName, binfile, binpath, desktopentry)
-    if confbool = 1 
+    if confbool == 1 
     	FileUtils.cp("/opt/hpkg/tmp/#{packageName}/#{packageName}.conflist", "/etc/hpkg/conflist/")
     end
 
@@ -668,6 +668,7 @@ def removeinfo(packageName)
     uninstallInfo = []
     dirList = []
     fileList = []
+    puts "packageName: #{packageName}"
     f = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "r")
     f.each_line {|line| uninstallInfo.push line }
     f.close
@@ -681,10 +682,10 @@ def removeinfo(packageName)
         end
     end
 
-    remove(dirList, fileList)
+    remove(packageName, dirList, fileList)
 end
 
-def remove(dirList, fileList)
+def remove(packageName, dirList, fileList)
 
     # Delete all the files
     fileList.each do |file|
@@ -731,6 +732,7 @@ def upgrade()
         uninstallInfo = []
         dirList = []
         fileList = []
+        puts "packageName: #{packageName}"
         removefile = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "r")
         removefile.each_line {|line| uninstallInfo.push line }
         removefile.close
@@ -744,9 +746,9 @@ def upgrade()
             end
         end
 
-        if File.exists?("/etc/hpkg/conflist/#{packageName}.conflist"
+        if File.exists?("/etc/hpkg/conflist/#{packageName}.conflist")
             configInfo = []
-            configFile = File.open("/etc/hpkg/conflist/#{packageName}.conflist"
+            configFile = File.open("/etc/hpkg/conflist/#{packageName}.conflist")
             configFile.each_line {|line| configInfo.push line }
             configFile.close
 
@@ -761,13 +763,13 @@ def upgrade()
     
         bupdate = 1
         repoinstall(packageName, totalPackages, bupdate)
-        remove(dirList, fileList)
+        remove(packageName, dirList, fileList)
         exthpkg(packageName)
         install(packageName)
     end
 end
 
-def repoinstall(packages, totalPackgase, bupdate)
+def repoinstall(packages, totalPackages, bupdate)
     # Install a package from a mirror. Check for connectivity to the
     # mirror, if so, download the package, extract it. Install package.
 
@@ -783,7 +785,7 @@ def repoinstall(packages, totalPackgase, bupdate)
     blocks = find_block(database)
     pkgver = nil
 
-    packages.each do |packageName|
+    packages.each_with_index do |packageName, index|
         blocks.each do |block|
             if block[2].include? packageName
                 i = block[0]
@@ -810,7 +812,7 @@ def repoinstall(packages, totalPackgase, bupdate)
         end
     end
 
-    if bupdate = 0
+    if bupdate == 0
         packages.each do |packageName|
             exthpkg(packageName)
         end
