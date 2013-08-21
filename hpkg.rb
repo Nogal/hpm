@@ -572,7 +572,7 @@ def sourceinstall(packageName)
     `sh /opt/hpkg/tmp/#{packageName}.hkpgbuild`
 end
 
-def install(packageName, pkgUpgrade)
+def install(packageName)
     # Open the .control file # to obtain the  necessary information for the 
     # package, move the exectuable to the correct path, run the control 
     # script, and register the package # in the local database.
@@ -759,11 +759,15 @@ def upgrade()
             end
         end
     
+        bupdate = 1
+        repoinstall(packageName, totalPackages, bupdate)
         remove(dirList, fileList)
+        exthpkg(packageName)
+        install(packageName)
     end
 end
 
-def repoinstall(packages)
+def repoinstall(packages, totalPackgase, bupdate)
     # Install a package from a mirror. Check for connectivity to the
     # mirror, if so, download the package, extract it. Install package.
 
@@ -779,8 +783,7 @@ def repoinstall(packages)
     blocks = find_block(database)
     pkgver = nil
 
-    totalPackages = packages.length
-    packages.each_with_index do |packageName, index|
+    packages.each do |packageName|
         blocks.each do |block|
             if block[2].include? packageName
                 i = block[0]
@@ -807,12 +810,14 @@ def repoinstall(packages)
         end
     end
 
-    packages.each do |packageName|
-        exthpkg(packageName)
-    end
+    if bupdate = 0
+        packages.each do |packageName|
+            exthpkg(packageName)
+        end
 
-    packages.each do |packageName|
-        install(packageName, 0)
+        packages.each do |packageName|
+            install(packageName)
+        end
     end
 end
 
@@ -837,7 +842,7 @@ def localinstall(packages)
         if packageName.include? ".hpkg"
             packageName = packageName.chomp('.hpkg')
         end
-            install(packageName, 0)
+            install(packageName)
     end
 end
 
@@ -858,7 +863,9 @@ case action
         STDOUT.flush
         decision = STDIN.gets.chomp
         if decision == "Y" || decision == "y" || decision == "yes"
-            repoinstall(packages)
+            totalPackages = packages.length
+            bupdate = 0
+            repoinstall(packages, totalPackages, bupdate)
         else
             puts "Aborting Installation"
         end
