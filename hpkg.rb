@@ -303,18 +303,6 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
                 uninstallInfo.delete(uninstallInfo[i]) 
             end
         end
-#         if not uninstallInfo[i] == nil
-#             puts "uninstallInfo[i] #{uninstallInfo[i].inspect}"
-#             puts "packageName = #{packageName.inspect}.control"
-#             if uninstallInfo[i] == "#{packageName}.control"
-#                 uninstallInfo.delete(uninstallInfo[i]) 
-#             end
-#         end
-#         if not uninstallInfo[i] == nil
-#             if uninstallInfo[i].include? ".control"
-#                 uninstallInfo.delete(uninstallInfo[i]) 
-#             end
-#         end
         if not uninstallInfo[i] == nil
             if uninstallInfo[i].include? ".conflist"
 		        confbool = 1
@@ -330,14 +318,14 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
     end
     uninstallInfo.delete("#{packageName}.control")
 
-    uninstallInfo.push("/usr/share/applications/#{uninstallDesktop}")
-    uninstallInfo.push("/etc/hpkg/controls/#{packageName}.control")
+    uninstallInfo.push("usr/share/applications/#{uninstallDesktop}")
+    uninstallInfo.push("etc/hpkg/controls/#{packageName}.control")
 
     if not binfile == "" || binfile == "N/A"
         uninstallBinpath = binpath.reverse
         uninstallBinpath = uninstallBinpath.chop
         uninstallBinpath = uninstallBinpath.reverse
-        uninstallBinfile = "/#{uninstallBinpath}/#{binfile}"
+        uninstallBinfile = "#{uninstallBinpath}/#{binfile}"
         uninstallInfo.push(uninstallBinfile)
     end
 
@@ -580,6 +568,20 @@ def sourceinstall(packageName)
     `sh /opt/hpkg/tmp/#{packageName}.hkpgbuild`
 end
 
+def handleconfig(packageName, file)
+    puts "It looks like the author of #{packageName} has included a new" \
+        " version of the configuration file located at:\n/#{file}"
+    puts "\nWould you like to continue using your configuration, or the new one? (c/n)"
+    STDOUT.flush
+    decision = STDIN.gets.chomp
+    if decision == "C" || decision == "c" 
+        FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{file}", \
+            "/opt/hpkg/tmp/#{packageName}/#{file}.new")
+    elsif decision == "N" || decision == "n"
+        FileUtils.mv("/#{file}", "/#{file}.old")
+    end
+end
+
 def install(packageName, bupdate, conflist)
     # Open the .control file # to obtain the  necessary information for the 
     # package, move the exectuable to the correct path, run the control 
@@ -627,13 +629,14 @@ def install(packageName, bupdate, conflist)
     # if it is an update, check for config files and ask if they should be
     # updated.
     if conflist != nil
-        puts "conflist: #{conflist}"
         conflist.each do |file|
-            file = file.chomp!
-            file = file.scan(/\\(.+$)/)
-            puts "file: #{file}"
+            file = file.scan(/\/(.+$)/)
+            file = file.join
+            if File.exists?("/opt/hpkg/tmp/#{packageName}/#{file}")
+                handleconfig(packageName, file)
+            end 
         end
-    end if
+    end 
 
 
     # move the directories to their correct locations.
@@ -717,7 +720,9 @@ def remove(packageName, dirList, fileList)
     fileList.each do |file|
         file = "/#{file}"
         puts "Removing: #{file}"
-        FileUtils.rm(file)
+        if File.exists?(file)
+            FileUtils.rm(file)
+        end
     end
 
     # Delete all of the now empty directories
@@ -778,10 +783,11 @@ def upgrade()
             configFile.each_line {|line| configInfo.push line }
             configFile.close
 
-            configInfo.each do |configData|
-                fileList.each do |file|
-                    if configData == file
-                        fileList.delete(configData)
+            fileList.each do |file|
+                configInfo.each do |configData|
+                    configData = configData.chomp!
+                    if configData == "/#{file}"
+                        fileList.delete(file)
                     end
                 end
             end
