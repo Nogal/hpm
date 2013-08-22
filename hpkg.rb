@@ -303,19 +303,21 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
                 uninstallInfo.delete(uninstallInfo[i]) 
             end
         end
-        if not uninstallInfo[i] == nil
-            if uninstallInfo[i] == "#{packageName}.control"
-                uninstallInfo.delete(uninstallInfo[i]) 
-            end
-        end
-        if not uninstallInfo[i] == nil
-            if uninstallInfo[i].include? ".control"
-                uninstallInfo.delete(uninstallInfo[i]) 
-            end
-        end
+#         if not uninstallInfo[i] == nil
+#             puts "uninstallInfo[i] #{uninstallInfo[i].inspect}"
+#             puts "packageName = #{packageName.inspect}.control"
+#             if uninstallInfo[i] == "#{packageName}.control"
+#                 uninstallInfo.delete(uninstallInfo[i]) 
+#             end
+#         end
+#         if not uninstallInfo[i] == nil
+#             if uninstallInfo[i].include? ".control"
+#                 uninstallInfo.delete(uninstallInfo[i]) 
+#             end
+#         end
         if not uninstallInfo[i] == nil
             if uninstallInfo[i].include? ".conflist"
-		confbool = 1
+		        confbool = 1
                 uninstallInfo.delete(uninstallInfo[i]) 
             end
 	    end
@@ -326,6 +328,7 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
         uninstallDesktop = desktopentry.scan(/\/opt\/hpkg\/tmp\/#{packageName}\/(.+$)/)
         uninstallDesktop = uninstallDesktop.join
     end
+    uninstallInfo.delete("#{packageName}.control")
 
     uninstallInfo.push("/usr/share/applications/#{uninstallDesktop}")
     uninstallInfo.push("/etc/hpkg/controls/#{packageName}.control")
@@ -626,6 +629,8 @@ def install(packageName, bupdate, conflist)
     if conflist != nil
         puts "conflist: #{conflist}"
         conflist.each do |file|
+            file = file.chomp!
+            file = file.scan(/\\(.+$)/)
             puts "file: #{file}"
         end
     end if
@@ -685,7 +690,7 @@ def removeinfo(packageName, bupdate)
     uninstallInfo = []
     dirList = []
     fileList = []
-    puts "packageName: #{packageName}"
+    puts "packageName: #{packageName.inspect}"
     f = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "r")
     f.each_line {|line| uninstallInfo.push line }
     f.close
@@ -748,8 +753,11 @@ def upgrade()
     upgradeFile = File.open("/etc/hpkg/pkginfo/updateDatabase.info", "r")
     upgradeFile.each_line {|line| packages.push line }
     upgradeFile.close
+    totalPackages = packages.length
 
-    packages.each do |packageName|
+    packages.each_with_index do |packageName, index|
+        count = index + 1
+        packageName = packageName.chomp
         uninstallInfo = []
         dirList = []
         fileList = []
@@ -780,7 +788,7 @@ def upgrade()
         end
     
         bupdate = 1
-        repoinstall(packageName, totalPackages, bupdate)
+        gethpkg(packageName, count, totalPackages)
         remove(packageName, dirList, fileList)
         exthpkg(packageName)
         install(packageName, bupdate, configInfo)
