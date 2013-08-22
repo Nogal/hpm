@@ -285,7 +285,7 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
     end
     uninstallInfo.delete(binfile)
     i = 0
-    endFile = uninstallInfo.length
+    endFile = uninstallInfo.length + 1
     confbool = 0
     while i <= endFile
         if not uninstallInfo[i] == nil
@@ -293,13 +293,18 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
                 uninstallInfo.delete(uninstallInfo[i]) 
             end
         end
-       if not uninstallInfo[i] == nil
+        if not uninstallInfo[i] == nil
             if uninstallInfo[i].include? ".desktop"
                 uninstallInfo.delete(uninstallInfo[i]) 
             end
-       end
-       if not uninstallInfo[i] == nil
+        end
+        if not uninstallInfo[i] == nil
             if uninstallInfo[i].include? ".hpkg"
+                uninstallInfo.delete(uninstallInfo[i]) 
+            end
+        end
+        if not uninstallInfo[i] == nil
+            if uninstallInfo[i] == "#{packageName}.control"
                 uninstallInfo.delete(uninstallInfo[i]) 
             end
         end
@@ -313,7 +318,7 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
 		confbool = 1
                 uninstallInfo.delete(uninstallInfo[i]) 
             end
-	end
+	    end
         i += 1
     end
 
@@ -572,7 +577,7 @@ def sourceinstall(packageName)
     `sh /opt/hpkg/tmp/#{packageName}.hkpgbuild`
 end
 
-def install(packageName)
+def install(packageName, bupdate, conflist)
     # Open the .control file # to obtain the  necessary information for the 
     # package, move the exectuable to the correct path, run the control 
     # script, and register the package # in the local database.
@@ -616,6 +621,16 @@ def install(packageName)
         hpkgmv(packageName, binfile, binpath)
     end
 
+    # if it is an update, check for config files and ask if they should be
+    # updated.
+    if conflist != nil
+        puts "conflist: #{conflist}"
+        conflist.each do |file|
+            puts "file: #{file}"
+        end
+    end if
+
+
     # move the directories to their correct locations.
     directories = Array.new
     dirList = Array.new
@@ -633,9 +648,11 @@ def install(packageName)
     end
 
     # Run the control script
-    puts "Running control script..."
-    puts `chmod +x /opt/hpkg/tmp/#{packageName}/#{conscript}`
-    puts `/opt/hpkg/tmp/#{packageName}/#{conscript}`
+    if conscript != nil
+        puts "Running control script..."
+        puts `chmod +x /opt/hpkg/tmp/#{packageName}/#{conscript}`
+        puts `/opt/hpkg/tmp/#{packageName}/#{conscript}`
+    end
 
     # Register package within the database
     puts "Registering packgages in database"
@@ -660,7 +677,7 @@ def install(packageName)
     end
 end
 
-def removeinfo(packageName)
+def removeinfo(packageName, bupdate)
     # Read the uninstall data for the package to be removed. Remove the
     # files which were installed, then check the directories in which they
     # were installed to. If thoso directories are empty, remove those too.
@@ -672,17 +689,21 @@ def removeinfo(packageName)
     f = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "r")
     f.each_line {|line| uninstallInfo.push line }
     f.close
-    uninstallInfo.each do |entry|
-        entry.chop!
-        dirCheck = entry.length - 1
-        if dirCheck == entry.rindex("/")
-            dirList.push(entry)
-        else
-            fileList.push(entry)
+    if bupdate == 1
+        return uninstallInfo
+    else
+        uninstallInfo.each do |entry|
+            entry.chop!
+            dirCheck = entry.length - 1
+            if dirCheck == entry.rindex("/")
+                dirList.push(entry)
+            else
+                fileList.push(entry)
+            end
         end
+    
+        remove(packageName, dirList, fileList)
     end
-
-    remove(packageName, dirList, fileList)
 end
 
 def remove(packageName, dirList, fileList)
@@ -732,10 +753,7 @@ def upgrade()
         uninstallInfo = []
         dirList = []
         fileList = []
-        puts "packageName: #{packageName}"
-        removefile = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "r")
-        removefile.each_line {|line| uninstallInfo.push line }
-        removefile.close
+        uninstallInfo = removeinfo(packageName, 1)
         uninstallInfo.each do |entry|
             entry.chop!
             dirCheck = entry.length - 1
@@ -765,7 +783,7 @@ def upgrade()
         repoinstall(packageName, totalPackages, bupdate)
         remove(packageName, dirList, fileList)
         exthpkg(packageName)
-        install(packageName)
+        install(packageName, bupdate, configInfo)
     end
 end
 
@@ -813,12 +831,13 @@ def repoinstall(packages, totalPackages, bupdate)
     end
 
     if bupdate == 0
+        conflist = nil
         packages.each do |packageName|
             exthpkg(packageName)
         end
 
         packages.each do |packageName|
-            install(packageName)
+            install(packageName, bupdate, conflist)
         end
     end
 end
@@ -844,7 +863,9 @@ def localinstall(packages)
         if packageName.include? ".hpkg"
             packageName = packageName.chomp('.hpkg')
         end
-            install(packageName)
+            conflist = nil
+            bupdate = 0
+            install(packageName, bupdate, conflist)
     end
 end
 
@@ -871,7 +892,7 @@ case action
         else
             puts "Aborting Installation"
         end
-    when "remove"; packages.each {|package| removeinfo(package)}
+    when "remove"; packages.each {|package| removeinfo(package, 0)}
     when "source-install"; packages.each {|package| sourceinstall(package)}
     when "local-install"
         package_queue(packages)
