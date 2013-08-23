@@ -508,7 +508,8 @@ def update()
                 i = i + 1
             end
 
-            databaseData = [nameinfo, hpkgversioninfo, versioninfo, mirrorinfo, depinfo, hashinfo, summaryinfo, "\n"]
+            databaseData = [nameinfo, hpkgversioninfo, versioninfo, mirrorinfo,\
+                    depinfo, hashinfo, summaryinfo, "\n"]
 
     
             # ok kids... here's where things get complicated.
@@ -561,11 +562,24 @@ def update()
 
 end
 
-def sourceinstall(packageName)
-    # Do some mirror magic...
-
-    `wget -q -c -O /opt/hpkg/tmp/#{packageName}.hpkgbuild #{mirror}/source/#{packageName}.hpkgbuild`
-    `sh /opt/hpkg/tmp/#{packageName}.hkpgbuild`
+def sourceinstall(source_link, direct_link, repo_fetch)
+    build_location = nil
+    puts "ARGV: #{ARGV.inspect}"
+    if direct_link == nil && repo_fetch == nil
+        build_location = ARGV[0]
+    elsif direct_link != nil && repo_fetch == nil
+        build_script = direct_link.scan(/^.+\/(.+$)/)
+        build_script = build_script.join
+        puts `wget -q -c -O /opt/hpkg/build/tmp/#{build_script} #{direct_link}`
+        build_location = "/opt/hpkg/build/tmp/#{build_script}"
+    end
+    if source_link == nil
+        source_link = ARGV[1]
+    else
+        source_file = source_link.scan(/^.+\/(.+$)/)
+        source_file = source_file.join
+        puts `wget -q -c -O /opt/hpkg/build/tmp/#{source_file} #{source_file}`
+    end
 end
 
 def handleconfig(packageName, file)
@@ -885,7 +899,6 @@ end
 
 def makepkg(package_folder, output_file)
     move = true
-    puts "output_file: #{output_file.inspect}"
     Dir.chdir(package_folder)
     package_folder = Dir.pwd
     Dir.chdir("../")
@@ -921,18 +934,48 @@ end
 # Get input from the user by means of arguments passed along with the program.
 # The first argument following the command is considered the action in the
 # program. All subsequent arguments are considered to be packages.
+arg_delete_list = Array.new
 output_file = nil
+source_link = nil
+get_build = nil
+repo_fetch = nil
 ARGV
 action = ARGV.shift
 ARGV.each_with_index do |argument, index|
     if  argument == "-o" || argument == "--output-file"
         next_index = index + 1
         output_file = ARGV[next_index]
-        ARGV.delete(argument)
-        ARGV.delete(output_file)
-        
+        arg_delete_list.push(argument)
+        arg_delete_list.push(output_file)
+#       ARGV.delete(argument)
+#       ARGV.delete(output_file)
+    elsif  argument == "-s" || argument == "--source-link"
+        next_index = index + 1
+        source_link = ARGV[next_index]
+        arg_delete_list.push(argument)
+        arg_delete_list.push(source_link)
+#       ARGV.delete(argument)
+#       ARGV.delete(source_link)
+    elsif  argument == "-d" || argument == "--direct-link"
+        next_index = index + 1
+        get_build = ARGV[next_index]
+        arg_delete_list.push(argument)
+        arg_delete_list.push(get_build)
+#       ARGV.delete(argument)
+#       ARGV.delete(get_build)
+    elsif  argument == "-r" || argument == "--repo-fetch"
+        next_index = index + 1
+        repo_fetch = ARGV[next_index]
+        arg_delete_list.push(argument)
+        arg_delete_list.push(repo_fetch)
+#       ARGV.delete(argument)
+#       ARGV.delete(repo_fetch)
     end 
 end
+arg_delete_list.each do |delete_item|
+    ARGV.delete(delete_item)
+end
+
 packages = ARGV
 
 # Decide which course of action to take
@@ -952,7 +995,8 @@ case action
             puts "Aborting Installation"
         end
     when "remove"; packages.each {|package| removeinfo(package, 0)}
-    when "source-install"; packages.each {|package| sourceinstall(package)}
+    when "source-install"
+        sourceinstall(source_link, get_build, repo_fetch)
     when "local-install"
         package_queue(packages)
         packageDisplay = packages.join(" ") 
