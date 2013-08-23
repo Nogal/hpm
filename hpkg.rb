@@ -883,11 +883,56 @@ def localinstall(packages)
     end
 end
 
+def makepkg(package_folder, output_file)
+    move = true
+    puts "output_file: #{output_file.inspect}"
+    Dir.chdir(package_folder)
+    package_folder = Dir.pwd
+    Dir.chdir("../")
+    if output_file == nil 
+        move = false
+        output_file = "#{package_folder}.hpkg"
+    end
+    package_folder = package_folder.scan(/^.+\/(.+$)/)
+    package_folder = package_folder.join
+    dirCheck = output_file.length - 1
+    if Dir.exists?(output_file)
+        if dirCheck == output_file.rindex("/")
+            output_file = "#{output_file}#{package_folder}.hpkg" 
+        else    
+            output_file = "#{output_file}/#{package_folder}.hpkg" 
+        end
+    end
+    output_location = output_file.scan(/(^.+\/).+$/)
+    output_location = output_location.join
+    
+    output_file = output_file.scan(/^.+\/(.+$)/)
+    output_file = output_file.join
+    package_folder = "#{package_folder}/*"
+    puts "output_file: #{output_file.inspect}"
+    puts "package_folder: #{package_folder.inspect}"
+    puts "output_location: #{output_location.inspect}"
+    puts `tar -cjf #{output_file} #{package_folder}`
+    if move == true
+        FileUtils.mv(output_file, output_location)
+    end
+end
+
 # Get input from the user by means of arguments passed along with the program.
 # The first argument following the command is considered the action in the
 # program. All subsequent arguments are considered to be packages.
+output_file = nil
 ARGV
 action = ARGV.shift
+ARGV.each_with_index do |argument, index|
+    if  argument == "-o" || argument == "--output-file"
+        next_index = index + 1
+        output_file = ARGV[next_index]
+        ARGV.delete(argument)
+        ARGV.delete(output_file)
+        
+    end 
+end
 packages = ARGV
 
 # Decide which course of action to take
@@ -923,5 +968,7 @@ case action
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
+    when "makepkg"
+        packages.each {|package|makepkg(package, output_file)}
     else helpPage
 end
