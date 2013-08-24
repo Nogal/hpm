@@ -28,7 +28,7 @@ def helpPage()
     # A friendly little help page. This displays to the user whenever a
     # user chooses the "help" commmand, or any invalid command.
     puts "Usage"
-    puts " hpkg (options) {package}"
+    puts " hpm (options) {package}"
     puts ""
     puts "Options include:"
     puts " install        :   install selected binary package(s) from repository"
@@ -44,17 +44,17 @@ def helpPage()
 end
 
 def clean()
-    # Cleans the cache by removing all files from /opt/hpkg/tmp/
+    # Cleans the cache by removing all files from /opt/hpm/tmp/
     puts "Cleaning Cache: "
-    FileUtils::Verbose.rm_rf(Dir.glob("/opt/hpkg/tmp/*"))
+    FileUtils::Verbose.rm_rf(Dir.glob("/opt/hpm/tmp/*"))
     puts "Cache Cleaned"
 end
 
 def test_mirror()
     # Verifies connectivity to the mirrors chosen by the user. The list of 
-    # mirrors is stored in /etc/hpkg/mirrors/mirror.lst, with each mirror
+    # mirrors is stored in /etc/hpm/mirrors/mirror.lst, with each mirror
     # on their own line. Checks each mirror for a valid ping.
-    f = File.open("/etc/hpkg/mirrors/mirror.lst", "r")
+    f = File.open("/etc/hpm/mirrors/mirror.lst", "r")
     f.each_line { |line|
 
     tempstatus = `bash /bin/hpkg/resources/testmirror.sh #{line}` 
@@ -71,16 +71,16 @@ def test_mirror()
     f.close
 end
 
-def hpkgmv(packageName, source, dest)
+def hpacmv(packageName, source, dest)
     # Move the package from the source (BIN_FILE from the .control file) 
     # to its destination (BIN_PATH from the .control file)
-    FileUtils.cd("/opt/hpkg/tmp/#{packageName}/")
-    FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{source}", dest)
+    FileUtils.cd("/opt/hpm/tmp/#{packageName}/")
+    FileUtils.mv("/opt/hpm/tmp/#{packageName}/#{source}", dest)
 end
 
-def gethpkg(packageName, current, total)
+def gethpac(packageName, current, total)
     # Download the package from the mirror
-    databaseFile = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "r")
+    databaseFile = File.open("/etc/hpm/pkginfo/hpmDatabase.info", "r")
     database = databaseFile.readlines
     databaseFile.close
     blocks = find_block(database)
@@ -103,10 +103,10 @@ def gethpkg(packageName, current, total)
         end
     end
 
-    puts `wget -q -c -O /opt/hpkg/tmp/#{packageName}.hpkg #{mirror}/#{packageName}.hpkg`
+    puts `wget -q -c -O /opt/hpm/tmp/#{packageName}.hpac #{mirror}/#{packageName}.hpac`
 
     puts "(#{current}/#{total}) Getting #{packageName}..."
-    sha512check = `sha512sum /opt/hpkg/tmp/#{packageName}.hpkg`
+    sha512check = `sha512sum /opt/hpm/tmp/#{packageName}.hpac`
     sha512check = sha512check.scan(/(.+)\  .+$/)
     sha512check = sha512check.join
     sha512check = sha512check.chomp
@@ -132,8 +132,8 @@ def gethpkg(packageName, current, total)
 
     if not sha512check.eql? sha512verify
         puts "Bad sha512sum: #{packageName}\nRetrying..."
-        FileUtils.rm("/opt/hpkg/tmp/#{packageName}.hpkg")
-        gethpkg(packageName, current, total)
+        FileUtils.rm("/opt/hpm/tmp/#{packageName}.hpac")
+        gethpac(packageName, current, total)
     end
 end
 
@@ -145,10 +145,10 @@ def checkFile( db_file, package )
     end
 end
 
-def exthpkg(packageName)
+def exthpac(packageName)
     # Extract the contents from the packaeg.
     puts "Extracting #{packageName}..."
-    puts `tar -C /opt/hpkg/tmp/ -xjf /opt/hpkg/tmp/#{packageName}.hpkg`
+    puts `tar -C /opt/hpm/tmp/ -xjf /opt/hpm/tmp/#{packageName}.hpac`
 end
 
 def find_block(database)
@@ -251,7 +251,7 @@ def package_queue(packages)
     # double check the list to ensure all missing dependencies are to be installed.
     packages.each do |packageName|
         # Open the control file and read the pertinent information.
-        database = IO.readlines("/etc/hpkg/pkginfo/hpkgDatabase.info")
+        database = IO.readlines("/etc/hpm/pkginfo/hpmDatabase.info")
 
         queue_check(database, packageName, packages)
     end
@@ -259,7 +259,7 @@ end
 
 def is_installed(packageName, pkgver)
     #Query the database to check if the package is already installed on the system.
-    dbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
+    dbFile = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
     if checkFile(dbFile, "#{packageName}//#{pkgver}") == true
         dbFile.close
         return true
@@ -275,7 +275,7 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
     # called during the remove function and upgrade functions. 
 
     uninstallInfo = []
-    baseUninstallInfo = `tar -tf /opt/hpkg/tmp/#{packageName}.hpkg`
+    baseUninstallInfo = `tar -tf /opt/hpm/tmp/#{packageName}.hpac`
     baseUninstallInfo = baseUninstallInfo.lines
     baseUninstallInfo.each do |entry|
         entry.chomp
@@ -299,7 +299,7 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
             end
         end
         if not uninstallInfo[i] == nil
-            if uninstallInfo[i].include? ".hpkg"
+            if uninstallInfo[i].include? ".hpac"
                 uninstallInfo.delete(uninstallInfo[i]) 
             end
         end
@@ -313,13 +313,13 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
     end
 
     if not desktopentry == nil
-        uninstallDesktop = desktopentry.scan(/\/opt\/hpkg\/tmp\/#{packageName}\/(.+$)/)
+        uninstallDesktop = desktopentry.scan(/\/opt\/hpm\/tmp\/#{packageName}\/(.+$)/)
         uninstallDesktop = uninstallDesktop.join
     end
     uninstallInfo.delete("#{packageName}.control")
 
     uninstallInfo.push("usr/share/applications/#{uninstallDesktop}")
-    uninstallInfo.push("etc/hpkg/controls/#{packageName}.control")
+    uninstallInfo.push("etc/hpm/controls/#{packageName}.control")
 
     if not binfile == "" || binfile == "N/A"
         uninstallBinpath = binpath.reverse
@@ -330,7 +330,7 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
     end
 
     fileList = Array.new
-    uFile = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "w")
+    uFile = File.open("/etc/hpm/pkdb/uinfo/#{packageName}.uinfo", "w")
     uninstallInfo.each do |line|
         line = line.chomp
         if not line == "#{packageName}.desktop"
@@ -356,7 +356,7 @@ def log_installinfo(packageName, binfile, binpath, desktopentry)
         md5List.push(md5info)
     end
 
-    upgradeFile = File.open("/etc/hpkg/pkdb/upinfo/#{packageName}.upinfo", "w")
+    upgradeFile = File.open("/etc/hpm/pkdb/upinfo/#{packageName}.upinfo", "w")
     md5List.each do |line|
         upgradeFile.puts line
     end
@@ -377,10 +377,10 @@ def version_check(updateBlocks, installedPackageName, installedPackageVersion)
         checkPackageName = checkPackageName.join
         if checkPackageName == installedPackageName
             while i <= endBlock
-                if not $hpkgDatabase[i] == nil
-                    if $hpkgDatabase[i].include? "PKGVER="
-                        if not $hpkgDatabase[i].include? "HPKGVER="
-                            repoCheckVersion = $hpkgDatabase[i].scan(/PKGVER=(.+$)/)
+                if not $hpmDatabase[i] == nil
+                    if $hpmDatabase[i].include? "PKGVER="
+                        if not $hpmDatabase[i].include? "HPKGVER="
+                            repoCheckVersion = $hpmDatabase[i].scan(/PKGVER=(.+$)/)
                             repoCheckVersion = repoCheckVersion.join
                             repoCheckVersion = repoCheckVersion.scan(/\d+/)
                             repoCheckVersion = repoCheckVersion.join
@@ -400,7 +400,7 @@ def version_check(updateBlocks, installedPackageName, installedPackageVersion)
     end
 end
 
-def database_check(hpkgBlock, databaseData, hpkgversioninfo, nameinfo)
+def database_check(hpmBlock, databaseData, hpmversioninfo, nameinfo)
     # Check the new repository's database versus the master list. If the new
     # repository has a version of the package greater than the version in
     # the master list, replace that block in the master database with the
@@ -413,25 +413,25 @@ def database_check(hpkgBlock, databaseData, hpkgversioninfo, nameinfo)
         while i <= endBlock
             if not databaseData[i] == nil
                 if databaseData[i].include?("HPKGVER=")
-                    checkVersion = hpkgversioninfo.scan(/HPKGVER=(.+$)/)
+                    checkVersion = hpmversioninfo.scan(/HPKGVER=(.+$)/)
                     checkVersion = checkVersion.join
-                    hpkgBlock.each_with_index do |block, hpkgIndex|
+                    hpmBlock.each_with_index do |block, hpmIndex|
                         if block[2] == nameinfo
-                            n = hpkgBlock[hpkgIndex][0] 
-                            hpkgStartBlock = hpkgBlock[hpkgIndex][0] 
-                            hpkgEndBlock = hpkgBlock[hpkgIndex][1] 
-                            while n <= hpkgEndBlock
-                                if not $hpkgDatabase[n] == nil
-                                    if $hpkgDatabase[n].include?("HPKGVER=")
-                                        hpkgCheckVersion = $hpkgDatabase[n].scan(/HPKGVER=(.+$)/)
-                                        hpkgCheckVersion = hpkgCheckVersion.join
+                            n = hpmBlock[hpmIndex][0] 
+                            hpmStartBlock = hpmBlock[hpmIndex][0] 
+                            hpmEndBlock = hpmBlock[hpmIndex][1] 
+                            while n <= hpmEndBlock
+                                if not $hpmDatabase[n] == nil
+                                    if $hpmDatabase[n].include?("HPKGVER=")
+                                        hpmCheckVersion = $hpmDatabase[n].scan(/HPKGVER=(.+$)/)
+                                        hpmCheckVersion = hpmCheckVersion.join
                                     end
                                 end
                                 n += 1
                             end
-                            if checkVersion > hpkgCheckVersion
-                                $hpkgDatabase.slice!(hpkgStartBlock..hpkgEndBlock)
-                                $hpkgDatabase += databaseData
+                            if checkVersion > hpmCheckVersion
+                                $hpmDatabase.slice!(hpmStartBlock..hpmEndBlock)
+                                $hpmDatabase += databaseData
                             end
                         end
                     end
@@ -450,7 +450,7 @@ def update()
     # the dependency resolution of the install process.
 
     mirrors = []
-    mirrorfile = File.open("/etc/hpkg/mirrors/mirror.lst", "r")
+    mirrorfile = File.open("/etc/hpm/mirrors/mirror.lst", "r")
     mirrorfile.each_line {|line| mirrors.push line.chomp }
     mirrorfile.close
    
@@ -458,17 +458,17 @@ def update()
     newDatabase = []
     nameinfo = nil
     mirrorinfo = nil
-    hpkgversioninfo = nil
+    hpmversioninfo = nil
     versioninfo = nil
     depinfo = nil
     hashinfo = nil
     summaryinfo = nil
 
-    $hpkgDatabase = [] 
+    $hpmDatabase = [] 
     mirrors.each do |mirror|
         mirror.chomp
-        puts `wget -q -c -O /etc/hpkg/pkginfo/newDatabase.info #{mirror}/package_database/package_database.info`
-        newDatabase = IO.readlines("/etc/hpkg/pkginfo/newDatabase.info")
+        puts `wget -q -c -O /etc/hpm/pkginfo/newDatabase.info #{mirror}/package_database/package_database.info`
+        newDatabase = IO.readlines("/etc/hpm/pkginfo/newDatabase.info")
         newDatabase = newDatabase.compact
     
         newBlocks = find_block(newDatabase)
@@ -483,8 +483,8 @@ def update()
             while i <= endBlock
                 if not newDatabase[i] == nil
                     if newDatabase[i].include? "HPKGVER="
-                        hpkgversioninfo = newDatabase[i]
-                        hpkgversioninfo = hpkgversioninfo.chomp
+                        hpmversioninfo = newDatabase[i]
+                        hpmversioninfo = hpmversioninfo.chomp
                     end
                     if newDatabase[i].include? "PKGVER="
                         if not newDatabase[i].include? "HPKGVER="
@@ -508,7 +508,7 @@ def update()
                 i = i + 1
             end
 
-            databaseData = [nameinfo, hpkgversioninfo, versioninfo, mirrorinfo,\
+            databaseData = [nameinfo, hpmversioninfo, versioninfo, mirrorinfo,\
                     depinfo, hashinfo, summaryinfo, "\n"]
 
     
@@ -518,45 +518,45 @@ def update()
             # If so, delete that entry and enter a new one, if not, do nothing. 
             # once the database is ready, push it out to file.
 
-            if $hpkgDatabase.empty?
-                $hpkgDatabase += databaseData
+            if $hpmDatabase.empty?
+                $hpmDatabase += databaseData
             else
-                hpkgBlocks = find_block($hpkgDatabase)
-                if not hpkgBlocks == nil
-                    if $hpkgDatabase.include? nameinfo
-                        database_check(hpkgBlocks, databaseData, hpkgversioninfo, nameinfo)
+                hpmBlocks = find_block($hpmDatabase)
+                if not hpmBlocks == nil
+                    if $hpmDatabase.include? nameinfo
+                        database_check(hpmBlocks, databaseData, hpmversioninfo, nameinfo)
                     else
-                        $hpkgDatabase += databaseData
+                        $hpmDatabase += databaseData
                     end
                 end
             end
         end
-        FileUtils.rm("/etc/hpkg/pkginfo/newDatabase.info")
+        FileUtils.rm("/etc/hpm/pkginfo/newDatabase.info")
     end
-    hpkgDatabaseFile = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "w")
-    hpkgDatabaseFile.puts  $hpkgDatabase
-    hpkgDatabaseFile.close
+    hpmDatabaseFile = File.open("/etc/hpm/pkginfo/hpmDatabase.info", "w")
+    hpmDatabaseFile.puts  $hpmDatabase
+    hpmDatabaseFile.close
 
     # Check if the current version is the same as the version available from the repo,
     # if not, add it to a file which can be called to in the upgrade function
     
     $updateDatabase = []
 
-    pkdbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
+    pkdbFile = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
     pkdbFile.each_with_index do |line, pkdbIndex|
         line.chomp!
         installedPackageName = line.scan(/(.+)\/\//)
         installedPackageName = installedPackageName.join
         installedPackageVersion = line.scan(/.+\/\/(.+$)/)
         installedPackageVersion = installedPackageVersion.join
-        updateBlocks = find_block($hpkgDatabase)
-        $hpkgDatabase.each_index do |index|
-            if $hpkgDatabase[index].include? installedPackageName
+        updateBlocks = find_block($hpmDatabase)
+        $hpmDatabase.each_index do |index|
+            if $hpmDatabase[index].include? installedPackageName
                 version_check(updateBlocks, installedPackageName, installedPackageVersion)
             end
         end
     end
-    updateDatabaseFile = File.open("/etc/hpkg/pkginfo/updateDatabase.info", "w")
+    updateDatabaseFile = File.open("/etc/hpm/pkginfo/updateDatabase.info", "w")
     updateDatabaseFile.puts $updateDatabase
     updateDatabaseFile.close
 
@@ -569,8 +569,8 @@ def sourceinstall(source_link, direct_link, repo_fetch)
     elsif direct_link != nil && repo_fetch == nil
         build_script = direct_link.scan(/^.+\/(.+$)/)
         build_script = build_script.join
-        puts `wget -q -c -O /opt/hpkg/build/tmp/#{build_script} #{direct_link}`
-        build_location = "/opt/hpkg/build/tmp/#{build_script}"
+        puts `wget -q -c -O /opt/hpm/build/tmp/#{build_script} #{direct_link}`
+        build_location = "/opt/hpm/build/tmp/#{build_script}"
     end
     if source_link == nil
         source_link = ARGV[1]
@@ -578,20 +578,20 @@ def sourceinstall(source_link, direct_link, repo_fetch)
         source_file = source_link.scan(/^.+\/(.+$)/)
         source_file = source_file.join
         puts "source_file: #{source_file.inspect}"
-        puts `wget -q -c -O /opt/hpkg/build/tmp/#{source_file} #{source_link}`
+        puts `wget -q -c -O /opt/hpm/build/tmp/#{source_file} #{source_link}`
     end
     puts "Running the buildscript..."
-    Dir.chdir("/opt/hpkg/build/tmp/")
+    Dir.chdir("/opt/hpm/build/tmp/")
     puts `chmod +x #{build_location}`
     puts `#{build_location}`
     packageName = build_script.scan(/(^.+)\..+$/)
     packageName = packageName.join
     conflist = nil
-    if Dir.exists? "/opt/hpkg/tmp/#{packageName}"
-        FileUtils.rm_rf(Dir.glob("/opt/hpkg/tmp/#{packageName}*"))
+    if Dir.exists? "/opt/hpm/tmp/#{packageName}"
+        FileUtils.rm_rf(Dir.glob("/opt/hpm/tmp/#{packageName}*"))
     end
-    FileUtils.mv("/opt/hpkg/build/tmp/#{packageName}.hpkg", "/opt/hpkg/tmp/")
-    exthpkg(packageName)
+    FileUtils.mv("/opt/hpm/build/tmp/#{packageName}.hpac", "/opt/hpm/tmp/")
+    exthpac(packageName)
     install(packageName, conflist)
 end
 
@@ -602,8 +602,8 @@ def handleconfig(packageName, file)
     STDOUT.flush
     decision = STDIN.gets.chomp
     if decision == "C" || decision == "c" 
-        FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{file}", \
-            "/opt/hpkg/tmp/#{packageName}/#{file}.new")
+        FileUtils.mv("/opt/hpm/tmp/#{packageName}/#{file}", \
+            "/opt/hpm/tmp/#{packageName}/#{file}.new")
     elsif decision == "N" || decision == "n"
         FileUtils.mv("/#{file}", "/#{file}.old")
     end
@@ -618,7 +618,7 @@ def install(packageName, conflist)
 
     puts "Installing #{packageName}..."
     data = []        
-    f = File.open("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "r")
+    f = File.open("/opt/hpm/tmp/#{packageName}/#{packageName}.control", "r")
     f.each_line {|line| data.push line }
     f.close
     binfile = nil
@@ -644,13 +644,13 @@ def install(packageName, conflist)
     end
 
     if not binfile == "N/A"
-        desktopentry = "/opt/hpkg/tmp/#{packageName}/#{packageName}.desktop"
+        desktopentry = "/opt/hpm/tmp/#{packageName}/#{packageName}.desktop"
     end
 
     # Move BIN_FILE to BIN_PATH from .control file.
     if not binfile == "N/A"
-        puts "Moving: #{binfile} from /opt/hpkg/tmp/#{packageName}/#{binfile} to #{binpath}"
-        hpkgmv(packageName, binfile, binpath)
+        puts "Moving: #{binfile} from /opt/hpm/tmp/#{packageName}/#{binfile} to #{binpath}"
+        hpacmv(packageName, binfile, binpath)
     end
 
     # if it is an update, check for config files and ask if they should be
@@ -659,7 +659,7 @@ def install(packageName, conflist)
         conflist.each do |file|
             file = file.scan(/\/(.+$)/)
             file = file.join
-            if File.exists?("/opt/hpkg/tmp/#{packageName}/#{file}")
+            if File.exists?("/opt/hpm/tmp/#{packageName}/#{file}")
                 handleconfig(packageName, file)
             end 
         end
@@ -669,7 +669,7 @@ def install(packageName, conflist)
     # move the directories to their correct locations.
     directories = Array.new
     dirList = Array.new
-    directories = `ls -pm /opt/hpkg/tmp/#{packageName}`    
+    directories = `ls -pm /opt/hpm/tmp/#{packageName}`    
     directories = directories.split(/, /)
     directories[-1] = directories[-1].chomp!
     directories.each do |check|
@@ -679,31 +679,31 @@ def install(packageName, conflist)
         end
     end
     dirList.each do |directory|
-        puts `cp -HanT /opt/hpkg/tmp/#{packageName}/#{directory} /#{directory}`
+        puts `cp -HanT /opt/hpm/tmp/#{packageName}/#{directory} /#{directory}`
     end
 
     # Run the control script
     if conscript != nil
         puts "Running control script..."
-        puts `chmod +x /opt/hpkg/tmp/#{packageName}/#{conscript}`
-        puts `/opt/hpkg/tmp/#{packageName}/#{conscript}`
+        puts `chmod +x /opt/hpm/tmp/#{packageName}/#{conscript}`
+        puts `/opt/hpm/tmp/#{packageName}/#{conscript}`
     end
 
     # Register package within the database
     puts "Registering packgages in database"
-    open('/etc/hpkg/pkdb/inpk.pkdb', 'a') { |database|
+    open('/etc/hpm/pkdb/inpk.pkdb', 'a') { |database|
             database.puts "#{packageName}//#{pkgver}" }
            
     # Register packages within the database
     if not binfile == "N/A"
         FileUtils.mv(desktopentry, "/usr/share/applications/")
     end
-    FileUtils.mv("/opt/hpkg/tmp/#{packageName}/#{packageName}.control", "/etc/hpkg/controls/")
+    FileUtils.mv("/opt/hpm/tmp/#{packageName}/#{packageName}.control", "/etc/hpm/controls/")
 
     # And save information to uninstall with:
     confbool = log_installinfo(packageName, binfile, binpath, desktopentry)
     if confbool == 1 
-    	FileUtils.cp("/opt/hpkg/tmp/#{packageName}/#{packageName}.conflist", "/etc/hpkg/conflist/")
+    	FileUtils.cp("/opt/hpm/tmp/#{packageName}/#{packageName}.conflist", "/etc/hpm/conflist/")
     end
 
     # And make the program executable.
@@ -721,7 +721,7 @@ def removeinfo(packageName, bupdate)
     dirList = []
     fileList = []
     puts "packageName: #{packageName.inspect}"
-    f = File.open("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo", "r")
+    f = File.open("/etc/hpm/pkdb/uinfo/#{packageName}.uinfo", "r")
     f.each_line {|line| uninstallInfo.push line }
     f.close
     if bupdate == 1
@@ -762,8 +762,8 @@ def remove(packageName, dirList, fileList)
     end
     
     # Delete the uinfo file and database entry
-    FileUtils.rm("/etc/hpkg/pkdb/uinfo/#{packageName}.uinfo")
-    dbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "r")
+    FileUtils.rm("/etc/hpm/pkdb/uinfo/#{packageName}.uinfo")
+    dbFile = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
     newDatabase = dbFile.readlines
     dbFile.close
     newDatabase.each do |line|
@@ -771,7 +771,7 @@ def remove(packageName, dirList, fileList)
             newDatabase.delete(line)
         end
     end
-    dbFile = File.open("/etc/hpkg/pkdb/inpk.pkdb", "w")
+    dbFile = File.open("/etc/hpm/pkdb/inpk.pkdb", "w")
     newDatabase.each do |line|
         dbFile.puts line
     end
@@ -782,7 +782,7 @@ end
 def upgrade()
 
     packages = []
-    upgradeFile = File.open("/etc/hpkg/pkginfo/updateDatabase.info", "r")
+    upgradeFile = File.open("/etc/hpm/pkginfo/updateDatabase.info", "r")
     upgradeFile.each_line {|line| packages.push line }
     upgradeFile.close
     totalPackages = packages.length
@@ -804,9 +804,9 @@ def upgrade()
             end
         end
 
-        if File.exists?("/etc/hpkg/conflist/#{packageName}.conflist")
+        if File.exists?("/etc/hpm/conflist/#{packageName}.conflist")
             configInfo = []
-            configFile = File.open("/etc/hpkg/conflist/#{packageName}.conflist")
+            configFile = File.open("/etc/hpm/conflist/#{packageName}.conflist")
             configFile.each_line {|line| configInfo.push line }
             configFile.close
 
@@ -821,9 +821,9 @@ def upgrade()
         end
     
         bupdate = 1
-        gethpkg(packageName, count, totalPackages)
+        gethpac(packageName, count, totalPackages)
         remove(packageName, dirList, fileList)
-        exthpkg(packageName)
+        exthpac(packageName)
         install(packageName, configInfo)
     end
 end
@@ -838,7 +838,7 @@ def repoinstall(packages, totalPackages, bupdate)
 
     # Get the required packages and extract them, then install them.
     
-    databaseFile = File.open("/etc/hpkg/pkginfo/hpkgDatabase.info", "r")
+    databaseFile = File.open("/etc/hpm/pkginfo/hpmDatabase.info", "r")
     database = databaseFile.readlines
     databaseFile.close
     blocks = find_block(database)
@@ -867,14 +867,14 @@ def repoinstall(packages, totalPackages, bupdate)
             packages.delete(packageName)
         else
             count = index + 1
-            gethpkg(packageName, count, totalPackages)
+            gethpac(packageName, count, totalPackages)
         end
     end
 
     if bupdate == 0
         conflist = nil
         packages.each do |packageName|
-            exthpkg(packageName)
+            exthpac(packageName)
         end
 
         packages.each do |packageName|
@@ -888,21 +888,21 @@ def localinstall(packages)
     # install the package. 
 
     packages.each do |packageName|
-        puts "Copying #{packageName} to /opt/hpkg/tmp/..."
-        FileUtils.cp("#{packageName}", "/opt/hpkg/tmp/")
+        puts "Copying #{packageName} to /opt/hpm/tmp/..."
+        FileUtils.cp("#{packageName}", "/opt/hpm/tmp/")
     end
 
     packages.each do |packageName|
-        if packageName.include? ".hpkg"
-            packageName = packageName.chomp('.hpkg')
+        if packageName.include? ".hpac"
+            packageName = packageName.chomp('.hpac')
         end
         puts "Extracting #{packageName}..."
-        exthpkg(packageName)
+        exthpac(packageName)
     end
 
     packages.each do |packageName|
-        if packageName.include? ".hpkg"
-            packageName = packageName.chomp('.hpkg')
+        if packageName.include? ".hpac"
+            packageName = packageName.chomp('.hpac')
         end
             conflist = nil
             install(packageName, conflist)
@@ -916,16 +916,16 @@ def makepkg(package_folder, output_file)
     Dir.chdir("../")
     if output_file == nil 
         move = false
-        output_file = "#{package_folder}.hpkg"
+        output_file = "#{package_folder}.hpac"
     end
     package_folder = package_folder.scan(/^.+\/(.+$)/)
     package_folder = package_folder.join
     dirCheck = output_file.length - 1
     if Dir.exists?(output_file)
         if dirCheck == output_file.rindex("/")
-            output_file = "#{output_file}#{package_folder}.hpkg" 
+            output_file = "#{output_file}#{package_folder}.hpac" 
         else    
-            output_file = "#{output_file}/#{package_folder}.hpkg" 
+            output_file = "#{output_file}/#{package_folder}.hpac" 
         end
     end
     output_location = output_file.scan(/(^.+\/).+$/)

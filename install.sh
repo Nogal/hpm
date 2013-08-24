@@ -33,8 +33,6 @@
 # #!/usr/bin/sh (HP-UX)
 # #!/bin/ksh (AIX)
 
-if UID=0 then
-
 echo "This script will proceed after 5 seconds... If you do not wish to proceed, hit Control + C before the countdown ends. Good luck."
 sleep 1
 echo "5"
@@ -52,22 +50,26 @@ sleep 1
 
 echo "Installation proceeding."
 
-mkdir -p /etc/hpkg/controls
-mkdir -p /etc/hpkg/mirrors
-mkdir -p /etc/hpkg/pkdb/uinfo
-mkdir -p /etc/hpkg/pkginfo
-mkdir -p /opt/hpkg/tmp
+mkdir -p /etc/hpm/controls
+mkdir -p /etc/hpm/conflist
+mkdir -p /etc/hpm/mirrors
+mkdir -p /etc/hpm/pkdb/uinfo
+mkdir -p /etc/hpm/pkdb/upinfo
+mkdir -p /etc/hpm/pkginfo
+mkdir -p /opt/hpm/build/tmp
+mkdir -p /opt/hpm/tmp
+touch /etc/hpkg/mirrors/mirror.lst
 
-wget -c -O /tmp/hpkg.tar.gz http://www.descentos.net/repository/hpkg-current.tar.gz
+#wget -c -O /tmp/hpm.tar.gz http://www.descentos.net/repository/hpm-current.tar.gz
+wget -c -O /tmp/hpm.tar.gz ftp://nogal-laptop/hpm.tar.gz
 
-tar -xzf /tmp/hpkg.tar.gz
+cd /tmp/
+tar -xzf /tmp/hpm.tar.gz
 
-mv /tmp/hpkg/opt/hpkg /opt/hpkg
-mv /tmp/hpkg/etc/hpkg /etc/hpkg
-mv /tmp/hpkg/bin/hpkg /usr/bin
-mv /tmp/hpkg/bin/pkdb /usr/bin
+mv /tmp/hpm/hpm /usr/bin/hpm
+mv /tmp/hpm/mirrors.txt /etc/hpm/mirrors
 
-cat /etc/hpkg/mirrorchoices.txt
+cat /etc/hpm/mirrors/mirrors.txt
 
 echo " "
 echo " "
@@ -91,23 +93,13 @@ hpkg update
 
 echo "Installing HPKG base packages."
 
-complete -W install\ remove\ source-install\ local-install\ clean\ update\ upgrade hpkg
-hpkg install hpkg_meta
+complete -W install\ makepkg\ remove\ source-install\ local-install\ clean\ update\ upgrade hpm
 
 echo "Cleaning up..."
 
-rm -rf /tmp/hpkg.tar.gz
-rm -rf /tmp/hpkg
+rm /tmp/hpm.tar.gz
+rm -rf /tmp/hpm
 
 sleep 3
 
 echo "HPKG installed."
-
-else
-
-echo "ERROR!"
-echo "SCRIPT MUST BE RAN AS ROOT!"
-echo "User is not root. Exiting."
-
-fi
-
