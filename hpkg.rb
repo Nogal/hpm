@@ -959,29 +959,21 @@ ARGV.each_with_index do |argument, index|
         output_file = ARGV[next_index]
         arg_delete_list.push(argument)
         arg_delete_list.push(output_file)
-#       ARGV.delete(argument)
-#       ARGV.delete(output_file)
     elsif  argument == "-s" || argument == "--source-link"
         next_index = index + 1
         source_link = ARGV[next_index]
         arg_delete_list.push(argument)
         arg_delete_list.push(source_link)
-#       ARGV.delete(argument)
-#       ARGV.delete(source_link)
     elsif  argument == "-d" || argument == "--direct-link"
         next_index = index + 1
         get_build = ARGV[next_index]
         arg_delete_list.push(argument)
         arg_delete_list.push(get_build)
-#       ARGV.delete(argument)
-#       ARGV.delete(get_build)
     elsif  argument == "-r" || argument == "--repo-fetch"
         next_index = index + 1
         repo_fetch = ARGV[next_index]
         arg_delete_list.push(argument)
         arg_delete_list.push(repo_fetch)
-#       ARGV.delete(argument)
-#       ARGV.delete(repo_fetch)
     end 
 end
 arg_delete_list.each do |delete_item|
