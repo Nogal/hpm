@@ -564,7 +564,6 @@ end
 
 def sourceinstall(source_link, direct_link, repo_fetch)
     build_location = nil
-    puts "ARGV: #{ARGV.inspect}"
     if direct_link == nil && repo_fetch == nil
         build_location = ARGV[0]
     elsif direct_link != nil && repo_fetch == nil
@@ -578,8 +577,22 @@ def sourceinstall(source_link, direct_link, repo_fetch)
     else
         source_file = source_link.scan(/^.+\/(.+$)/)
         source_file = source_file.join
-        puts `wget -q -c -O /opt/hpkg/build/tmp/#{source_file} #{source_file}`
+        puts "source_file: #{source_file.inspect}"
+        puts `wget -q -c -O /opt/hpkg/build/tmp/#{source_file} #{source_link}`
     end
+    puts "Running the buildscript..."
+    Dir.chdir("/opt/hpkg/build/tmp/")
+    puts `chmod +x #{build_location}`
+    puts `#{build_location}`
+    packageName = build_script.scan(/(^.+)\..+$/)
+    packageName = packageName.join
+    conflist = nil
+    if Dir.exists? "/opt/hpkg/tmp/#{packageName}"
+        FileUtils.rm_rf(Dir.glob("/opt/hpkg/tmp/#{packageName}*"))
+    end
+    FileUtils.mv("/opt/hpkg/build/tmp/#{packageName}.hpkg", "/opt/hpkg/tmp/")
+    exthpkg(packageName)
+    install(packageName, conflist)
 end
 
 def handleconfig(packageName, file)
@@ -596,7 +609,7 @@ def handleconfig(packageName, file)
     end
 end
 
-def install(packageName, bupdate, conflist)
+def install(packageName, conflist)
     # Open the .control file # to obtain the  necessary information for the 
     # package, move the exectuable to the correct path, run the control 
     # script, and register the package # in the local database.
@@ -811,7 +824,7 @@ def upgrade()
         gethpkg(packageName, count, totalPackages)
         remove(packageName, dirList, fileList)
         exthpkg(packageName)
-        install(packageName, bupdate, configInfo)
+        install(packageName, configInfo)
     end
 end
 
@@ -865,7 +878,7 @@ def repoinstall(packages, totalPackages, bupdate)
         end
 
         packages.each do |packageName|
-            install(packageName, bupdate, conflist)
+            install(packageName, conflist)
         end
     end
 end
@@ -892,8 +905,7 @@ def localinstall(packages)
             packageName = packageName.chomp('.hpkg')
         end
             conflist = nil
-            bupdate = 0
-            install(packageName, bupdate, conflist)
+            install(packageName, conflist)
     end
 end
 
@@ -918,13 +930,13 @@ def makepkg(package_folder, output_file)
     end
     output_location = output_file.scan(/(^.+\/).+$/)
     output_location = output_location.join
+    if output_lotation = package_folder
+        move = false
+    end
     
     output_file = output_file.scan(/^.+\/(.+$)/)
     output_file = output_file.join
     package_folder = "#{package_folder}/*"
-    puts "output_file: #{output_file.inspect}"
-    puts "package_folder: #{package_folder.inspect}"
-    puts "output_location: #{output_location.inspect}"
     puts `tar -cjf #{output_file} #{package_folder}`
     if move == true
         FileUtils.mv(output_file, output_location)
