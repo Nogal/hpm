@@ -609,6 +609,27 @@ def handleconfig(packageName, file)
     end
 end
 
+def register_package(package_name)
+    info_database = IO.readlines("/etc/hpm/pkginfo/hpkgDatabase.info")
+    info_database = info_database.compact
+
+    info_blocks = find_block(info_database)
+    info_blocks.each_index do |info_block_index|
+        if info_blocks[info_block_index][2].include? package_name
+            i = info_blocks[info_block_index][0]
+            end_block = info_blocks[info_block_index][1]
+            nameinfo = info_blocks[info_block_index][2]
+    
+            while i <= end_block
+                if not info_database[i] == nil
+                    if info_database[i].include? "DEPLIST="
+                    end
+                end
+            end
+        end
+    end
+end
+
 def install(packageName, conflist)
     # Open the .control file # to obtain the  necessary information for the 
     # package, move the exectuable to the correct path, run the control 
@@ -690,10 +711,11 @@ def install(packageName, conflist)
     end
 
     # Register package within the database
-    puts "Registering packgages in database"
-    open('/etc/hpm/pkdb/inpk.pkdb', 'a') { |database|
-            database.puts "#{packageName}//#{pkgver}" }
-           
+#    puts "Registering packgages in database"
+#    open('/etc/hpm/pkdb/inpk.pkdb', 'a') { |database|
+#            database.puts "#{packageName}//#{pkgver}" }
+    register_package(packageName)       
+
     # Register packages within the database
     if not binfile == "N/A"
         FileUtils.mv(desktopentry, "/usr/share/applications/")
