@@ -226,8 +226,15 @@ def queue_check(database, packageName, packages)
                                         pkgver = database[i].scan(/PKGVER=(.+$)/)
                                         pkgver = pkgver.join
                                         if not is_installed(dependency, pkgver)
-                                            if not packages.include?(dependency)
-                                                packages.unshift(dependency)
+                                            depbool = 0
+                                            packages.each_index do |pkg_index|
+                                                if packages[pkg_index][0] == dependency
+                                                    packages[pkg_index][2].push packageName
+                                                    depbool = 1
+                                                end
+                                            end
+                                            if depbool = 0
+                                                packages.unshift([dependency, "automatic", packageName])
                                                 package_queue(packages)
                                             end
                                         end
@@ -249,7 +256,8 @@ def package_queue(packages)
     # or not it is installed. If not, add it to the start of the list of 
     # packages to be installed. Each time a new package is added to the list, 
     # double check the list to ensure all missing dependencies are to be installed.
-    packages.each do |packageName|
+    packages.each_index do |pkg_index|
+        packageName = packages[pkg_index][0]
         # Open the control file and read the pertinent information.
         database = IO.readlines("/etc/hpm/pkginfo/hpmDatabase.info")
 
@@ -1002,7 +1010,22 @@ arg_delete_list.each do |delete_item|
     ARGV.delete(delete_item)
 end
 
-packages = ARGV
+packagelist = ARGV
+packages = Array.new
+i = 0
+packagelist.each do |package|
+    # but basically what's going on is that we're creating a list of
+    # packages which are to be installed, and we need to figure out three
+    # things about each package, its name, whether it was installed manually
+    # or via dependency resolution, and which packages that depend on it 
+    # ("dependant") not that which it depends on ("dependency") If a program
+    # is manually installed, the dependant list is unimportant, however for 
+    # automatic entries this must be logged.
+    packages[i][0] = package
+    packages[i][1] = "manual"
+    packages[i][3] = Array.new
+    i += 1
+end
 
 # Decide which course of action to take
 case action
