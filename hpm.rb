@@ -273,8 +273,8 @@ def dependant_add(package_name, dependency)
                             if not installed_packages[n] == nil
                                 if installed_packages[n].include?("DEPENDANT=")
                                     dependants = installed_packages[n].scan(/DEPENDANT=(.+$)/)
-                                    # add the package to the list of depenants and recreate the list...
-                                    # I'm tired.
+                                    dependants.push package
+                                    installed_packages[n] = "DEPENDANT=#{dependants}"
                                 end
                             end
                         end
@@ -284,6 +284,9 @@ def dependant_add(package_name, dependency)
             i += 1 
         end
     end
+    f = File.open("/etc/hpm/pkdb/inpk.pkdb", "w")
+    f.puts installed_packages
+    f.close
 end
 
 def package_queue(packages)
