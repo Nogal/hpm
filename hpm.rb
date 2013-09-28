@@ -874,7 +874,8 @@ def repoinstall(packages, totalPackages, bupdate)
     blocks = find_block(database)
     pkgver = nil
 
-    packages.each_with_index do |packageName, index|
+    packages.each_index do |pkg_index|
+        packageName = packages[pkg_index][0]
         blocks.each do |block|
             if block[2].include? packageName
                 i = block[0]
@@ -894,20 +895,22 @@ def repoinstall(packages, totalPackages, bupdate)
         end
         if is_installed(packageName, pkgver)
             puts "#{packageName} is already at the newest version."
-            packages.delete(packageName)
+            packages.delete_at(pkg_index)
         else
-            count = index + 1
+            count = pkg_index + 1
             gethpac(packageName, count, totalPackages)
         end
     end
 
     if bupdate == 0
         conflist = nil
-        packages.each do |packageName|
+        packages.each_index do |pkg_index|
+            packageName = packages[pkg_index][0]
             exthpac(packageName)
         end
 
-        packages.each do |packageName|
+        packages.each_index do |pkg_index|
+            packageName = packages[pkg_index][0]
             install(packageName, conflist)
         end
     end
@@ -1023,7 +1026,7 @@ packagelist.each do |package|
     # automatic entries this must be logged.
     packages[i][0] = package
     packages[i][1] = "manual"
-    packages[i][3] = Array.new
+    packages[i][2] = Array.new
     i += 1
 end
 
