@@ -237,6 +237,8 @@ def queue_check(database, packageName, packages)
                                                 packages.unshift([dependency, "automatic", packageName])
                                                 package_queue(packages)
                                             end
+                                        elsif is_installed(dependency, pkgver)
+                                            dependant_add(packageName, dependency)
                                         end
                                     end
                                 end
@@ -246,6 +248,40 @@ def queue_check(database, packageName, packages)
                     end
                 end
             end
+        end
+    end
+end
+
+def dependant_add(package_name, dependency)
+    installed_packages = Array.new
+    f = File.open('/etc/hpm/pkdb/inpk.pkdb', 'r')
+    f.each_line { |line| installed_packages.push line }
+    f.close
+
+    blocks = find_block(installed_packages)
+    blocks.each do |block|
+        i = block[0]
+        end_block = block[1]
+
+        while i <= end_block
+            if not installed_packages[i] == nil
+                if installed_packages[i].include?("HPMNAME=")
+                    current_package = installed_packages[i].scan(/HPMNAME=(.+$)/)
+                    if current_package = dependency 
+                        n = i
+                        while n <= end_block
+                            if not installed_packages[n] == nil
+                                if installed_packages[n].include?("DEPENDANT=")
+                                    dependants = installed_packages[n].scan(/DEPENDANT=(.+$)/)
+                                    # add the package to the list of depenants and recreate the list...
+                                    # I'm tired.
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            i += 1 
         end
     end
 end
@@ -617,34 +653,26 @@ def handleconfig(packageName, file)
     end
 end
 
-def register_package(package_name)
-    info_database = IO.readlines("/etc/hpm/pkginfo/hpkgDatabase.info")
-    info_database = info_database.compact
+def register_package(package)
+    package_name = package[0]
+    installtype = package[1]
+    dependants = package[2]
 
-    info_blocks = find_block(info_database)
-    info_blocks.each_index do |info_block_index|
-        if info_blocks[info_block_index][2].include? package_name
-            i = info_blocks[info_block_index][0]
-            end_block = info_blocks[info_block_index][1]
-            nameinfo = info_blocks[info_block_index][2]
-    
-            while i <= end_block
-                if not info_database[i] == nil
-                    if info_database[i].include? "DEPLIST="
-                    end
-                end
-            end
-        end
-    end
+    open('/etc/hpm/pkdb/inpk.pkdb', 'a') { |database|
+        database.puts "HPMNAME=#{package_name}" 
+        database.puts "INST_TYPE=#{install_type}" 
+        database.puts "DEPENDANT=#{dependants}" 
+    }
 end
 
-def install(packageName, conflist)
+def install(package, conflist)
     # Open the .control file # to obtain the  necessary information for the 
     # package, move the exectuable to the correct path, run the control 
     # script, and register the package # in the local database.
 
     # Open the control file and read the pertinent information.
 
+    packageName = package[0]
     puts "Installing #{packageName}..."
     data = []        
     f = File.open("/opt/hpm/tmp/#{packageName}/#{packageName}.control", "r")
@@ -719,10 +747,7 @@ def install(packageName, conflist)
     end
 
     # Register package within the database
-#    puts "Registering packgages in database"
-#    open('/etc/hpm/pkdb/inpk.pkdb', 'a') { |database|
-#            database.puts "#{packageName}//#{pkgver}" }
-    register_package(packageName)       
+    register_package(package)       
 
     # Register packages within the database
     if not binfile == "N/A"
@@ -911,7 +936,7 @@ def repoinstall(packages, totalPackages, bupdate)
 
         packages.each_index do |pkg_index|
             packageName = packages[pkg_index][0]
-            install(packageName, conflist)
+            install(packages[pkg_index], conflist)
         end
     end
 end
