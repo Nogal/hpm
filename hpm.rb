@@ -823,14 +823,15 @@ def remove(package, dirList, fileList)
     # Delete the uinfo file and database entry
     FileUtils.rm("/etc/hpm/pkdb/uinfo/#{packageName}.uinfo")
     dbFile = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
-    newDatabase = dbFile.readlines
+    new_database = dbFile.readlines
     dbFile.close
-    blocks = find_block(newDatabase)
+    blocks = find_block(new_database)
     blocks.each do |block|
-        i = block[0]
-        end_block = block[1]
-        #parse through and remove the correct database entry.
-
+        if block[2].include? packageName
+            start_block = block[0]
+            end_block = block[1]
+            new_database.slice!(start_block..end_block)
+        end
     end
     dbFile = File.open("/etc/hpm/pkdb/inpk.pkdb", "w")
     newDatabase.each do |line|
