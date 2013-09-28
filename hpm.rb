@@ -770,7 +770,7 @@ def install(package, conflist)
     end
 end
 
-def removeinfo(packageName, bupdate)
+def removeinfo(package, bupdate)
     # Read the uninstall data for the package to be removed. Remove the
     # files which were installed, then check the directories in which they
     # were installed to. If thoso directories are empty, remove those too.
@@ -778,7 +778,7 @@ def removeinfo(packageName, bupdate)
     uninstallInfo = []
     dirList = []
     fileList = []
-    puts "packageName: #{packageName.inspect}"
+    packageName = package[0]
     f = File.open("/etc/hpm/pkdb/uinfo/#{packageName}.uinfo", "r")
     f.each_line {|line| uninstallInfo.push line }
     f.close
@@ -799,7 +799,8 @@ def removeinfo(packageName, bupdate)
     end
 end
 
-def remove(packageName, dirList, fileList)
+def remove(package, dirList, fileList)
+    packageName = package[0]
 
     # Delete all the files
     fileList.each do |file|
@@ -824,10 +825,12 @@ def remove(packageName, dirList, fileList)
     dbFile = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
     newDatabase = dbFile.readlines
     dbFile.close
-    newDatabase.each do |line|
-        if line.include? packageName
-            newDatabase.delete(line)
-        end
+    blocks = find_block(newDatabase)
+    blocks.each do |block|
+        i = block[0]
+        end_block = block[1]
+        #parse through and remove the correct database entry.
+
     end
     dbFile = File.open("/etc/hpm/pkdb/inpk.pkdb", "w")
     newDatabase.each do |line|
