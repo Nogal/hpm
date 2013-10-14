@@ -952,12 +952,14 @@ def localinstall(packages)
     # Install a package from a local sourc. Extract it. Clean Input, and
     # install the package. 
 
-    packages.each do |packageName|
+    packages.each_index do |index|
+        packageName = package[0]
         puts "Copying #{packageName} to /opt/hpm/tmp/..."
         FileUtils.cp("#{packageName}", "/opt/hpm/tmp/")
     end
 
-    packages.each do |packageName|
+    packages.each do |index|
+        packageName = package[0]
         if packageName.include? ".hpac"
             packageName = packageName.chomp('.hpac')
         end
@@ -965,12 +967,13 @@ def localinstall(packages)
         exthpac(packageName)
     end
 
-    packages.each do |packageName|
+    packages.each do |package|
+        packageName = package[0]
         if packageName.include? ".hpac"
             packageName = packageName.chomp('.hpac')
         end
             conflist = nil
-            install(packageName, conflist)
+            install(package, conflist)
     end
 end
 
