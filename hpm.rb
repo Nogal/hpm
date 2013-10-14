@@ -633,13 +633,17 @@ def sourceinstall(source_link, direct_link, repo_fetch)
     puts `#{build_location}`
     packageName = build_script.scan(/(^.+)\..+$/)
     packageName = packageName.join
+    package = Array.new
+    package[0] = packageName
+    package[1] = "manual"
+    package[2] = Array.new
     conflist = nil
     if Dir.exists? "/opt/hpm/tmp/#{packageName}"
         FileUtils.rm_rf(Dir.glob("/opt/hpm/tmp/#{packageName}*"))
     end
     FileUtils.mv("/opt/hpm/build/tmp/#{packageName}.hpac", "/opt/hpm/tmp/")
     exthpac(packageName)
-    install(packageName, conflist)
+    install(package, conflist)
 end
 
 def handleconfig(packageName, file)
