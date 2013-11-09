@@ -26,7 +26,7 @@
 #
 #
 
-#This script is used to install hpkg onto Unix-like Operating Systems.
+#This script is used to install hpm onto Unix-like Operating Systems.
 
 #These bangs are for other unix platforms. Just uncomment them and comment out #!/bin/sh in order to port it to a different architecture.
 
@@ -58,7 +58,8 @@ mkdir -p /etc/hpm/pkdb/upinfo
 mkdir -p /etc/hpm/pkginfo
 mkdir -p /opt/hpm/build/tmp
 mkdir -p /opt/hpm/tmp
-touch /etc/hpkg/mirrors/mirror.lst
+touch /etc/hpm/mirrors/mirror.lst
+touch /etc/hpm/pkdb/inpk.pkdb
 
 #wget -c -O /tmp/hpm.tar.gz http://www.descentos.net/repository/hpm-current.tar.gz
 wget -c -O /tmp/hpm.tar.gz ftp://nogal-laptop/hpm.tar.gz
@@ -83,17 +84,17 @@ echo " "
 
 read choice
 
-echo $choice > /etc/hpkg/mirrors/mirrors.txt
+echo $choice > /etc/hpm/mirrors/mirrors.txt
 
 sleep 2
 
 echo "Mirror selected."
 
-hpkg update
+hpm update
 
-echo "Installing HPKG base packages."
+echo "Installing HPM base packages."
 
-complete -W install\ makepkg\ remove\ source-install\ local-install\ clean\ update\ upgrade hpm
+mv /tmp/hpm/compgen /etc/bash_completion.d/hpm
 
 echo "Cleaning up..."
 
@@ -102,4 +103,4 @@ rm -rf /tmp/hpm
 
 sleep 3
 
-echo "HPKG installed."
+echo "HPM installed."
