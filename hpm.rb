@@ -963,25 +963,23 @@ def localinstall(packages)
     # Install a package from a local sourc. Extract it. Clean Input, and
     # install the package. 
 
-    packages.each_index do |index|
-        packageName = package[0]
-        puts "Copying #{packageName} to /opt/hpm/tmp/..."
-        FileUtils.cp("#{packageName}", "/opt/hpm/tmp/")
-    end
-
-    packages.each do |index|
-        packageName = package[0]
-        if packageName.include? ".hpac"
-            packageName = packageName.chomp('.hpac')
-        end
-        puts "Extracting #{packageName}..."
-        exthpac(packageName)
+    packages.each do |package|
+        puts "Copying #{package[0]} to /opt/hpm/tmp/..."
+        FileUtils.cp("#{package[0]}", "/opt/hpm/tmp/")
     end
 
     packages.each do |package|
         packageName = package[0]
         if packageName.include? ".hpac"
             packageName = packageName.chomp('.hpac')
+        end
+        exthpac(packageName)
+    end
+
+    packages.each do |package|
+        packageName = package[0]
+        if package[0].include? ".hpac"
+            package[0] = package[0].chomp('.hpac')
         end
             conflist = nil
             install(package, conflist)
@@ -1106,7 +1104,6 @@ case action
     when "local-install"
         if not packageDisplay == ""
             package_queue(packages)
-            packageDisplay = packages.join(" ") 
             puts "Packages to be installed:\n\n#{packageDisplay}\n"
             puts "\nProceed with installation? (y/n)"
             STDOUT.flush
