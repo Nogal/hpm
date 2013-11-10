@@ -57,7 +57,7 @@ def test_mirror()
     f = File.open("/etc/hpm/mirrors/mirror.lst", "r")
     f.each_line { |line|
 
-    tempstatus = `bash /bin/hpkg/resources/testmirror.sh #{line}` 
+    tempstatus = `bash /bin/hpm/resources/testmirror.sh #{line}` 
     status = tempstatus.split
 
     if status[-1] == "true" 
@@ -79,8 +79,7 @@ def hpacmv(packageName, source, dest)
 end
 
 def gethpac(packageName, current, total, failcount)
-    puts "packageName = #{packageName}"
-    if not failcount == 2
+    if not failcount >= 3
         # Download the package from the mirror
         databaseFile = File.open("/etc/hpm/pkginfo/hpmDatabase.info", "r")
         database = databaseFile.readlines
@@ -90,7 +89,7 @@ def gethpac(packageName, current, total, failcount)
         blocks.each_with_index do |block, index|
             i = block[0]
             endBlock = block[1]
-            packageTest = block[2].scan(/HPKGNAME=(.+$)/)
+            packageTest = block[2].scan(/HPMNAME=(.+$)/)
             packageTest = packageTest.join
             if packageTest = packageName
                 while i <= endBlock
@@ -114,7 +113,7 @@ def gethpac(packageName, current, total, failcount)
         sha512check = sha512check.chomp
         sha512verify = nil
         blocks.each do |block|
-            nameCheck = block[2].scan(/HPKGNAME=(.+$)/)
+            nameCheck = block[2].scan(/HPMNAME=(.+$)/)
             nameCheck = nameCheck.join
             if nameCheck == packageName
                 i = block[0]
@@ -140,6 +139,7 @@ def gethpac(packageName, current, total, failcount)
         end
     else
         puts "Failed to download package."
+        exit
     end
 end
 
@@ -165,7 +165,7 @@ def find_block(database)
     namelist = []
     database.each_with_index do |line, databaseIndex|
         if not line == nil
-            if line.include? "HPKGNAME="
+            if line.include? "HPMNAME="
                 pkgname = line.chomp
                 blocklist.push(databaseIndex)
                 namelist.push(pkgname)
@@ -200,7 +200,7 @@ def queue_check(database, packageName, packages)
  
     blocks = find_block(database)
     blocks.each_with_index do |block, index|
-        checkPackage = block[2].scan(/HPKGNAME=(.+$)/)
+        checkPackage = block[2].scan(/HPMNAME=(.+$)/)
         checkPackage = checkPackage.join
         if packages.include?(checkPackage)
             i = blocks[index][0]
@@ -220,7 +220,7 @@ def queue_check(database, packageName, packages)
         if deplist.empty? == false
             deplist.each do |dependency, pkgver|
                 blocks.each_with_index do |block, index|
-                    namecheck = block[2].scan(/HPKGNAME=(.+$)/)
+                    namecheck = block[2].scan(/HPMNAME=(.+$)/)
                     namecheck = namecheck.join
                     if dependency == namecheck
                         i = block[0]
@@ -228,7 +228,7 @@ def queue_check(database, packageName, packages)
                         while i <= endBlock
                             if database[i] != nil
                                 if database[i].include? "PKGVER="
-                                    if not database[i].include? "HPKGVER="
+                                    if not database[i].include? "HPMVER="
                                         pkgver = database[i].scan(/PKGVER=(.+$)/)
                                         pkgver = pkgver.join
                                         if not is_installed(dependency, pkgver)
@@ -313,7 +313,7 @@ end
 def is_installed(packageName, pkgver)
     #Query the database to check if the package is already installed on the system.
     dbFile = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
-    if checkFile(dbFile, "#{packageName}//#{pkgver}") == true
+    if checkFile(dbFile, packageName) == true
         dbFile.close
         return true
     else
@@ -426,13 +426,13 @@ def version_check(updateBlocks, installedPackageName, installedPackageVersion)
     updateBlocks.each_index do |index|
         i = updateBlocks[index][0]
         endBlock = updateBlocks[index][1]
-        checkPackageName = updateBlocks[index][2].scan(/HPKGNAME=(.+$)/)
+        checkPackageName = updateBlocks[index][2].scan(/HPMNAME=(.+$)/)
         checkPackageName = checkPackageName.join
         if checkPackageName == installedPackageName
             while i <= endBlock
                 if not $hpmDatabase[i] == nil
                     if $hpmDatabase[i].include? "PKGVER="
-                        if not $hpmDatabase[i].include? "HPKGVER="
+                        if not $hpmDatabase[i].include? "HPMVER="
                             repoCheckVersion = $hpmDatabase[i].scan(/PKGVER=(.+$)/)
                             repoCheckVersion = repoCheckVersion.join
                             repoCheckVersion = repoCheckVersion.scan(/\d+/)
@@ -465,8 +465,8 @@ def database_check(hpmBlock, databaseData, hpmversioninfo, nameinfo)
         endBlock = newBlocks[newBlockIndex][1]
         while i <= endBlock
             if not databaseData[i] == nil
-                if databaseData[i].include?("HPKGVER=")
-                    checkVersion = hpmversioninfo.scan(/HPKGVER=(.+$)/)
+                if databaseData[i].include?("HPMVER=")
+                    checkVersion = hpmversioninfo.scan(/HPMVER=(.+$)/)
                     checkVersion = checkVersion.join
                     hpmBlock.each_with_index do |block, hpmIndex|
                         if block[2] == nameinfo
@@ -475,8 +475,8 @@ def database_check(hpmBlock, databaseData, hpmversioninfo, nameinfo)
                             hpmEndBlock = hpmBlock[hpmIndex][1] 
                             while n <= hpmEndBlock
                                 if not $hpmDatabase[n] == nil
-                                    if $hpmDatabase[n].include?("HPKGVER=")
-                                        hpmCheckVersion = $hpmDatabase[n].scan(/HPKGVER=(.+$)/)
+                                    if $hpmDatabase[n].include?("HPMVER=")
+                                        hpmCheckVersion = $hpmDatabase[n].scan(/HPMVER=(.+$)/)
                                         hpmCheckVersion = hpmCheckVersion.join
                                     end
                                 end
@@ -535,12 +535,12 @@ def update()
             i = startBlock 
             while i <= endBlock
                 if not newDatabase[i] == nil
-                    if newDatabase[i].include? "HPKGVER="
+                    if newDatabase[i].include? "HPMVER="
                         hpmversioninfo = newDatabase[i]
                         hpmversioninfo = hpmversioninfo.chomp
                     end
                     if newDatabase[i].include? "PKGVER="
-                        if not newDatabase[i].include? "HPKGVER="
+                        if not newDatabase[i].include? "HPMVER="
                             versioninfo = newDatabase[i]
                             versioninfo = versioninfo.chomp
                         end
@@ -667,7 +667,6 @@ def handleconfig(packageName, file)
 end
 
 def register_package(package)
-    puts "package = #{package.inspect}"
     package_name = package[0]
     install_type = package[1]
     dependants = package[2]
@@ -811,7 +810,7 @@ def removeinfo(package, bupdate)
 end
 
 def remove(package, dirList, fileList)
-    packageName = package[0]
+    packageName = package
 
     # Delete all the files
     fileList.each do |file|
@@ -845,7 +844,7 @@ def remove(package, dirList, fileList)
         end
     end
     dbFile = File.open("/etc/hpm/pkdb/inpk.pkdb", "w")
-    newDatabase.each do |line|
+    new_database.each do |line|
         dbFile.puts line
     end
     dbFile.close
@@ -918,9 +917,7 @@ def repoinstall(packages, totalPackages, bupdate)
     pkgver = nil
 
     packages.each_with_index do |package, pkg_index|
-    puts "packages = #{packages}"
         packageName = package[0]
-        puts "packageName = #{packageName.inspect}"
         blocks.each do |block|
             if block[2].include? packageName
                 i = block[0]
@@ -928,7 +925,7 @@ def repoinstall(packages, totalPackages, bupdate)
                 while i <= endBlock
                     if not database[i] == nil
                         if database[i].include?("PKGVER=")
-                            if not database[i].include?("HPKGVER=")
+                            if not database[i].include?("HPMVER=")
                                 pkgver = database[i].scan(/PKGVER=(.+$)/)
                                 pkgver = pkgver.join
                             end
@@ -1063,7 +1060,6 @@ arg_delete_list.each do |delete_item|
 end
 
 packagelist = ARGV
-puts "packagelist = #{packagelist.inspect}"
 packages = Array.new
 packagelist.each_with_index do |package, i|
     # but basically what's going on is that we're creating a list of
@@ -1079,11 +1075,16 @@ packagelist.each_with_index do |package, i|
     packages[i].push('manual') # [1]
 end
 
+packageDisplay = Array.new
+packages.each do | package |
+    packageDisplay.push(package[0])
+end
+packageDisplay = packageDisplay * ","
+
 # Decide which course of action to take
 case action
     when "install"
         package_queue(packages)
-        packageDisplay = packages.join(" ") 
         puts "Packages to be installed:\n\n#{packageDisplay}\n"
         puts "\nProceed with installation? (y/n)"
         STDOUT.flush
