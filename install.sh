@@ -84,7 +84,7 @@ echo " "
 
 read choice
 
-echo $choice > /etc/hpm/mirrors/mirrors.txt
+echo $choice > /etc/hpm/mirrors/mirrors.lst
 
 sleep 2
 

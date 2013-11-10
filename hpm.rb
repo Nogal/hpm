@@ -78,62 +78,68 @@ def hpacmv(packageName, source, dest)
     FileUtils.mv("/opt/hpm/tmp/#{packageName}/#{source}", dest)
 end
 
-def gethpac(packageName, current, total)
-    # Download the package from the mirror
-    databaseFile = File.open("/etc/hpm/pkginfo/hpmDatabase.info", "r")
-    database = databaseFile.readlines
-    databaseFile.close
-    blocks = find_block(database)
-    mirror = nil
-    blocks.each_with_index do |block, index|
-        i = block[0]
-        endBlock = block[1]
-        packageTest = block[2].scan(/HPKGNAME=(.+$)/)
-        packageTest = packageTest.join
-        if packageTest = packageName
-            while i <= endBlock
-                if not database[i] == nil
-                    if database[i].include? "MIRROR="
-                        mirror = database[i].scan(/MIRROR=(.+$)/)
-                        mirror = mirror.join
-                    end
-                end
-            i += 1
-            end
-        end
-    end
-
-    puts `wget -q -c -O /opt/hpm/tmp/#{packageName}.hpac #{mirror}/#{packageName}.hpac`
-
-    puts "(#{current}/#{total}) Getting #{packageName}..."
-    sha512check = `sha512sum /opt/hpm/tmp/#{packageName}.hpac`
-    sha512check = sha512check.scan(/(.+)\  .+$/)
-    sha512check = sha512check.join
-    sha512check = sha512check.chomp
-    sha512verify = nil
-    blocks.each do |block|
-        nameCheck = block[2].scan(/HPKGNAME=(.+$)/)
-        nameCheck = nameCheck.join
-        if nameCheck == packageName
+def gethpac(packageName, current, total, failcount)
+    puts "packageName = #{packageName}"
+    if not failcount == 2
+        # Download the package from the mirror
+        databaseFile = File.open("/etc/hpm/pkginfo/hpmDatabase.info", "r")
+        database = databaseFile.readlines
+        databaseFile.close
+        blocks = find_block(database)
+        mirror = nil
+        blocks.each_with_index do |block, index|
             i = block[0]
             endBlock = block[1]
-            while i <= endBlock
-                if not database[i] == nil
-                    if database[i].include?("SHA512SUM")
-                        sha512verify = database[i].scan(/SHA512SUM=(.+$)/) 
-                        sha512verify = sha512verify.join
-                        sha512verify = sha512verify.chomp
+            packageTest = block[2].scan(/HPKGNAME=(.+$)/)
+            packageTest = packageTest.join
+            if packageTest = packageName
+                while i <= endBlock
+                    if not database[i] == nil
+                        if database[i].include? "MIRROR="
+                            mirror = database[i].scan(/MIRROR=(.+$)/)
+                            mirror = mirror.join
+                        end
                     end
+                i += 1
                 end
-            i += 1
             end
         end
-    end
-
-    if not sha512check.eql? sha512verify
-        puts "Bad sha512sum: #{packageName}\nRetrying..."
-        FileUtils.rm("/opt/hpm/tmp/#{packageName}.hpac")
-        gethpac(packageName, current, total)
+    
+        puts `wget -q -c -O /opt/hpm/tmp/#{packageName}.hpac #{mirror}/#{packageName}.hpac`
+    
+        puts "(#{current}/#{total}) Getting #{packageName}..."
+        sha512check = `sha512sum /opt/hpm/tmp/#{packageName}.hpac`
+        sha512check = sha512check.scan(/(.+)\  .+$/)
+        sha512check = sha512check.join
+        sha512check = sha512check.chomp
+        sha512verify = nil
+        blocks.each do |block|
+            nameCheck = block[2].scan(/HPKGNAME=(.+$)/)
+            nameCheck = nameCheck.join
+            if nameCheck == packageName
+                i = block[0]
+                endBlock = block[1]
+                while i <= endBlock
+                    if not database[i] == nil
+                        if database[i].include?("SHA512SUM")
+                            sha512verify = database[i].scan(/SHA512SUM=(.+$)/) 
+                            sha512verify = sha512verify.join
+                            sha512verify = sha512verify.chomp
+                        end
+                    end
+                i += 1
+                end
+            end
+        end
+    
+        if not sha512check.eql? sha512verify
+            failcount += 1
+            puts "Bad sha512sum: #{packageName}\nRetrying..."
+            FileUtils.rm("/opt/hpm/tmp/#{packageName}.hpac")
+            gethpac(packageName, current, total, failcount)
+        end
+    else
+        puts "Failed to download package."
     end
 end
 
@@ -233,7 +239,7 @@ def queue_check(database, packageName, packages)
                                                     depbool = 1
                                                 end
                                             end
-                                            if depbool = 0
+                                            if depbool == 0
                                                 packages.unshift([dependency, "automatic", packageName])
                                                 package_queue(packages)
                                             end
@@ -578,7 +584,7 @@ def update()
                 end
             end
         end
-        FileUtils.rm("/etc/hpm/pkginfo/newDatabase.info")
+#        FileUtils.rm("/etc/hpm/pkginfo/newDatabase.info")
     end
     hpmDatabaseFile = File.open("/etc/hpm/pkginfo/hpmDatabase.info", "w")
     hpmDatabaseFile.puts  $hpmDatabase
@@ -661,8 +667,9 @@ def handleconfig(packageName, file)
 end
 
 def register_package(package)
+    puts "package = #{package.inspect}"
     package_name = package[0]
-    installtype = package[1]
+    install_type = package[1]
     dependants = package[2]
 
     open('/etc/hpm/pkdb/inpk.pkdb', 'a') { |database|
@@ -910,8 +917,10 @@ def repoinstall(packages, totalPackages, bupdate)
     blocks = find_block(database)
     pkgver = nil
 
-    packages.each_index do |pkg_index|
-        packageName = packages[pkg_index][0]
+    packages.each_with_index do |package, pkg_index|
+    puts "packages = #{packages}"
+        packageName = package[0]
+        puts "packageName = #{packageName.inspect}"
         blocks.each do |block|
             if block[2].include? packageName
                 i = block[0]
@@ -934,7 +943,8 @@ def repoinstall(packages, totalPackages, bupdate)
             packages.delete_at(pkg_index)
         else
             count = pkg_index + 1
-            gethpac(packageName, count, totalPackages)
+            failcount = 0
+            gethpac(packageName, count, totalPackages, failcount)
         end
     end
 
@@ -1053,9 +1063,9 @@ arg_delete_list.each do |delete_item|
 end
 
 packagelist = ARGV
+puts "packagelist = #{packagelist.inspect}"
 packages = Array.new
-i = 0
-packagelist.each do |package|
+packagelist.each_with_index do |package, i|
     # but basically what's going on is that we're creating a list of
     # packages which are to be installed, and we need to figure out three
     # things about each package, its name, whether it was installed manually
@@ -1063,10 +1073,10 @@ packagelist.each do |package|
     # ("dependant") not that which it depends on ("dependency") If a program
     # is manually installed, the dependant list is unimportant, however for 
     # automatic entries this must be logged.
-    packages[i][0] = package
-    packages[i][1] = "manual"
-    packages[i][2] = Array.new
-    i += 1
+    package = package.dup
+    packages[i] = Array.new
+    packages[i].push(package) # [0]
+    packages[i].push('manual') # [1]
 end
 
 # Decide which course of action to take
