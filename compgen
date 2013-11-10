@@ -7,9 +7,25 @@ _hpm()
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     opts="install makepkg remove source-install local-install clean update upgrade"
 
-    if [[ ${cur} == * ]] ; then
-        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-        return 0
-    fi
+    case "${prev}" in
+        hpm)
+            if [[ ${cur} == * ]] ; then
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            fi
+            ;;
+        local-install)
+            local packages=$(for x in `ls . | grep hpac`; do echo $x; done)
+            COMPREPLY=( $(compgen -W "${packages}" -- ${cur}) )
+            return 0
+            ;;
+        source-install)
+            local args=$(for x in `ls .`; do echo $x; done)
+            COMPREPLY=( $(compgen -W "${args}" -- ${cur}) )
+            return 0
+            ;;
+        *)
+        ;;
+    esac
 }
 complete -F _hpm hpm

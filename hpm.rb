@@ -1084,32 +1084,40 @@ packageDisplay = packageDisplay * ","
 # Decide which course of action to take
 case action
     when "install"
-        package_queue(packages)
-        puts "Packages to be installed:\n\n#{packageDisplay}\n"
-        puts "\nProceed with installation? (y/n)"
-        STDOUT.flush
-        decision = STDIN.gets.chomp
-        if decision == "Y" || decision == "y" || decision == "yes"
-            totalPackages = packages.length
-            bupdate = 0
-            repoinstall(packages, totalPackages, bupdate)
-        else
-            puts "Aborting Installation"
+        if not packageDisplay == ""
+            package_queue(packages)
+            puts "Packages to be installed:\n\n#{packageDisplay}\n"
+            puts "\nProceed with installation? (y/n)"
+            STDOUT.flush
+            decision = STDIN.gets.chomp
+            if decision == "Y" || decision == "y" || decision == "yes"
+                totalPackages = packages.length
+                bupdate = 0
+                repoinstall(packages, totalPackages, bupdate)
+            else
+                puts "Aborting Installation"
+            end
+        else 
+            helpPage()
         end
     when "remove"; packages.each {|package| removeinfo(package, 0)}
     when "source-install"
         sourceinstall(source_link, get_build, repo_fetch)
     when "local-install"
-        package_queue(packages)
-        packageDisplay = packages.join(" ") 
-        puts "Packages to be installed:\n\n#{packageDisplay}\n"
-        puts "\nProceed with installation? (y/n)"
-        STDOUT.flush
-        decision = STDIN.gets.chomp
-        if decision == "Y" || decision == "y" || decision == "yes"
-            localinstall(packages)
+        if not packageDisplay == ""
+            package_queue(packages)
+            packageDisplay = packages.join(" ") 
+            puts "Packages to be installed:\n\n#{packageDisplay}\n"
+            puts "\nProceed with installation? (y/n)"
+            STDOUT.flush
+            decision = STDIN.gets.chomp
+            if decision == "Y" || decision == "y" || decision == "yes"
+                localinstall(packages)
+            else
+                puts "Aborting Installation"
+            end
         else
-            puts "Aborting Installation"
+            helpPage()
         end
     when "clean"; clean
     when "update"; update
