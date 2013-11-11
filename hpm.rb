@@ -248,8 +248,6 @@ def queue_check(database, packageName, packages)
                                                 packages.unshift([dependency, "automatic", packageName])
                                                 package_queue(packages)
                                             end
-                                        elsif is_installed(dependency, pkgver)
-                                            dependant_add(packageName, dependency)
                                         end
                                     end
                                 end
@@ -284,10 +282,15 @@ def dependant_add(package_name, dependency)
                             if not installed_packages[n] == nil
                                 if installed_packages[n].include?("DEPENDANT=")
                                     dependants = installed_packages[n].scan(/DEPENDANT=(.+$)/)
-                                    dependants.push package
-                                    installed_packages[n] = "DEPENDANT=#{dependants}"
+                                    dependants.flatten!
+                                    if not dependants.include?(package_name)
+                                        dependants.push(package_name)
+                                        dependants = dependants.join(" ")
+                                        installed_packages[n] = "DEPENDANT=#{dependants}"
+                                    end
                                 end
                             end
+                            n += 1
                         end
                     end
                 end
@@ -715,6 +718,14 @@ def install(package, conflist)
         elsif line.include? "PKGVER="
             pkgver = line.scan(/PKGVER=(.+$)/)
             pkgver = pkgver.join
+        elsif line.include? "DEPLIST="
+            deplist = line.scan(/DEPLIST=(.+$)/)
+            deplist.flatten!
+            deplist.each do | dependency |
+                puts "packageName = #{packageName}"
+                puts "dependency = #{dependency}"
+                dependant_add(packageName, dependency)
+            end
         end
     end
 
