@@ -24,6 +24,11 @@ _hpm()
             COMPREPLY=( $(compgen -W "${args}" -- ${cur}) )
             return 0
             ;;
+        makepkg)
+            local args=$(for x in `ls .`; do echo $x; done)
+            COMPREPLY=( $(compgen -W "${args}" -- ${cur}) )
+            return 0
+            ;;
         *)
         ;;
     esac

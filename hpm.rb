@@ -196,13 +196,18 @@ def queue_check(database, packageName, packages)
     # dependency, check if it is installed, if not, add
     # it to the list of files to be installed.
     deplist = Array.new
+    package_list = Array.new
     pkgver = nil
+
+    packages.each do | package |
+        package_list.push package[0]
+    end
  
     blocks = find_block(database)
     blocks.each_with_index do |block, index|
         checkPackage = block[2].scan(/HPMNAME=(.+$)/)
         checkPackage = checkPackage.join
-        if packages.include?(checkPackage)
+        if package_list.include?(checkPackage)
             i = blocks[index][0]
             endBlock = blocks[index][1]
             while i <= endBlock
@@ -235,7 +240,7 @@ def queue_check(database, packageName, packages)
                                             depbool = 0
                                             packages.each_index do |pkg_index|
                                                 if packages[pkg_index][0] == dependency
-                                                    packages[pkg_index][2].push packageName
+                                                    packages[pkg_index][2] += packageName
                                                     depbool = 1
                                                 end
                                             end
@@ -301,8 +306,8 @@ def package_queue(packages)
     # or not it is installed. If not, add it to the start of the list of 
     # packages to be installed. Each time a new package is added to the list, 
     # double check the list to ensure all missing dependencies are to be installed.
-    packages.each_index do |pkg_index|
-        packageName = packages[pkg_index][0]
+    packages.each do | package |
+        packageName = package[0]
         # Open the control file and read the pertinent information.
         database = IO.readlines("/etc/hpm/pkginfo/hpmDatabase.info")
 
@@ -584,7 +589,7 @@ def update()
                 end
             end
         end
-#        FileUtils.rm("/etc/hpm/pkginfo/newDatabase.info")
+        FileUtils.rm("/etc/hpm/pkginfo/newDatabase.info")
     end
     hpmDatabaseFile = File.open("/etc/hpm/pkginfo/hpmDatabase.info", "w")
     hpmDatabaseFile.puts  $hpmDatabase
@@ -1074,16 +1079,16 @@ packagelist.each_with_index do |package, i|
 end
 
 packageDisplay = Array.new
-packages.each do | package |
-    packageDisplay.push(package[0])
-end
-packageDisplay = packageDisplay * ","
 
 # Decide which course of action to take
 case action
     when "install"
         if not packageDisplay == ""
             package_queue(packages)
+            packages.each do | package |
+                packageDisplay.push(package[0])
+            end
+            packageDisplay = packageDisplay * ","
             puts "Packages to be installed:\n\n#{packageDisplay}\n"
             puts "\nProceed with installation? (y/n)"
             STDOUT.flush
@@ -1104,6 +1109,10 @@ case action
     when "local-install"
         if not packageDisplay == ""
             package_queue(packages)
+            packages.each do | package |
+                packageDisplay.push(package[0])
+            end
+            packageDisplay = packageDisplay * ","
             puts "Packages to be installed:\n\n#{packageDisplay}\n"
             puts "\nProceed with installation? (y/n)"
             STDOUT.flush
@@ -1120,6 +1129,6 @@ case action
     when "update"; update
     when "upgrade"; upgrade
     when "makepkg"
-        packages.each {|package|makepkg(package, output_file)}
+        packages.each {|package|makepkg(package[0], output_file)}
     else helpPage
 end
