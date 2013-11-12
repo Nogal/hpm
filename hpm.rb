@@ -722,8 +722,6 @@ def install(package, conflist)
             deplist = line.scan(/DEPLIST=(.+$)/)
             deplist.flatten!
             deplist.each do | dependency |
-                puts "packageName = #{packageName}"
-                puts "dependency = #{dependency}"
                 dependant_add(packageName, dependency)
             end
         end
@@ -771,6 +769,7 @@ def install(package, conflist)
     # Run the control script
     if conscript != nil
         puts "Running control script..."
+        FileUtils.cd("/opt/hpm/tmp/#{packageName}/")
         puts `chmod +x /opt/hpm/tmp/#{packageName}/#{conscript}`
         puts `/opt/hpm/tmp/#{packageName}/#{conscript}`
     end
@@ -1099,7 +1098,7 @@ case action
             packages.each do | package |
                 packageDisplay.push(package[0])
             end
-            packageDisplay = packageDisplay * ","
+            packageDisplay = packageDisplay * ", "
             puts "Packages to be installed:\n\n#{packageDisplay}\n"
             puts "\nProceed with installation? (y/n)"
             STDOUT.flush
@@ -1123,7 +1122,7 @@ case action
             packages.each do | package |
                 packageDisplay.push(package[0])
             end
-            packageDisplay = packageDisplay * ","
+            packageDisplay = packageDisplay * ", "
             puts "Packages to be installed:\n\n#{packageDisplay}\n"
             puts "\nProceed with installation? (y/n)"
             STDOUT.flush
