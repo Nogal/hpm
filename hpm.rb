@@ -612,8 +612,10 @@ def update()
         installedPackageVersion = installedPackageVersion.join
         updateBlocks = find_block($hpmDatabase)
         $hpmDatabase.each_index do |index|
-            if $hpmDatabase[index].include? installedPackageName
-                version_check(updateBlocks, installedPackageName, installedPackageVersion)
+            if not $hpmDatabase[index] == nil
+                if $hpmDatabase[index].include? installedPackageName
+                    version_check(updateBlocks, installedPackageName, installedPackageVersion)
+                end
             end
         end
     end

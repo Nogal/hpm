@@ -62,7 +62,7 @@ touch /etc/hpm/mirrors/mirror.lst
 touch /etc/hpm/pkdb/inpk.pkdb
 
 #wget -c -O /tmp/hpm.tar.gz http://www.descentos.net/repository/hpm-current.tar.gz
-wget -c -O /tmp/hpm.tar.gz ftp://nogal-laptop/hpm.tar.gz
+wget -c -O /tmp/hpm.tar.gz ftp://archbox/hpm.tar.gz
 
 cd /tmp/
 tar -xzf /tmp/hpm.tar.gz
