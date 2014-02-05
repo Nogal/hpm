@@ -276,13 +276,13 @@ def dependant_add(package_name, dependency)
             if not installed_packages[i] == nil
                 if installed_packages[i].include?("HPMNAME=")
                     current_package = installed_packages[i].scan(/HPMNAME=(.+$)/)
-                    if current_package = dependency 
+                    if current_package == dependency 
                         n = i
                         while n <= end_block
                             if not installed_packages[n] == nil
                                 if installed_packages[n].include?("DEPENDANT=")
                                     dependants = installed_packages[n].scan(/DEPENDANT=(.+$)/)
-                                    dependants.flatten!
+                                    dependants.flatten
                                     if not dependants.include?(package_name)
                                         dependants.push(package_name)
                                         dependants = dependants.join(" ")
