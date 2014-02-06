@@ -23,6 +23,7 @@
 #THE SOFTWARE.
 
 require 'fileutils'
+require 'io/console'
 
 def helpPage()
     # A friendly little help page. This displays to the user whenever a
@@ -104,9 +105,19 @@ def gethpac(packageName, current, total, failcount)
             end
         end
     
-        puts `wget -q -c -O /opt/hpm/tmp/#{packageName}.hpac #{mirror}/#{packageName}.hpac`
-    
         puts "(#{current}/#{total}) Getting #{packageName}..."
+        io = IO.popen("wget -c -O /opt/hpm/tmp/#{packageName}.hpac #{mirror}/#{packageName}.hpac 2>&1", "r") do |pipe|
+            pipe.each do |line|
+                if line.include?("%")
+                    percent = line.scan(/^.+( 100(?:\.0{1,2})? | 0*?\.\d{1,2} | \d{1,2}(?:\.\d{1,2})?%).+$/)
+                    percent = percent.join
+                    print "\r#{percent} complete"
+                end
+            end
+        print "\r             "
+        puts "\r100% complete"
+        end
+    
         sha512check = `sha512sum /opt/hpm/tmp/#{packageName}.hpac`
         sha512check = sha512check.scan(/(.+)\  .+$/)
         sha512check = sha512check.join
@@ -1144,3 +1155,4 @@ case action
         packages.each {|package|makepkg(package[0], output_file)}
     else helpPage
 end
+
