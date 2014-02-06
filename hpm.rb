@@ -1155,4 +1155,3 @@ case action
         packages.each {|package|makepkg(package[0], output_file)}
     else helpPage
 end
-
