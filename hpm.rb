@@ -158,7 +158,7 @@ def checkFile( db_file, package )
     # Check whether or not the database contains the version of the package 
     # requested by the user. If so, return "true"
     File.open( db_file ) do |io|
-    io.each {|line| line.chomp! ; return true if line.include? package}
+        io.each {|line| line.chomp! ; return true if line.include? "HPMNAME=#{package}"}
     end
 end
 
@@ -226,8 +226,10 @@ def queue_check(database, packageName, packages)
                     if database[i].include? "DEPLIST="
                         newdeps = database[i].scan(/DEPLIST=(.+$)/)
                         newdeps = newdeps.join
-                        newdeps = newdeps.split
-                        deplist += newdeps
+                        newdeps = newdeps.split(" ")
+                        if not deplist.include?(newdeps)
+                            deplist += newdeps
+                        end
                     end
                 end
             i += 1
@@ -249,9 +251,8 @@ def queue_check(database, packageName, packages)
                                         pkgver = pkgver.join
                                         if not is_installed(dependency, pkgver)
                                             depbool = 0
-                                            packages.each_index do |pkg_index|
-                                                if packages[pkg_index][0] == dependency
-                                                    packages[pkg_index][2] += packageName
+                                            packages.each do |package|
+                                                if package[0] == dependency
                                                     depbool = 1
                                                 end
                                             end
@@ -287,13 +288,14 @@ def dependant_add(package_name, dependency)
             if not installed_packages[i] == nil
                 if installed_packages[i].include?("HPMNAME=")
                     current_package = installed_packages[i].scan(/HPMNAME=(.+$)/)
-                    if current_package = dependency 
+                    current_package = current_package.join
+                    if current_package == dependency 
                         n = i
                         while n <= end_block
                             if not installed_packages[n] == nil
                                 if installed_packages[n].include?("DEPENDANT=")
                                     dependants = installed_packages[n].scan(/DEPENDANT=(.+$)/)
-                                    dependants.flatten!
+                                    dependants = dependants.flatten
                                     if not dependants.include?(package_name)
                                         dependants.push(package_name)
                                         dependants = dependants.join(" ")
@@ -651,7 +653,6 @@ def sourceinstall(source_link, direct_link, repo_fetch)
     else
         source_file = source_link.scan(/^.+\/(.+$)/)
         source_file = source_file.join
-        puts "source_file: #{source_file.inspect}"
         puts `wget -q -c -O /opt/hpm/build/tmp/#{source_file} #{source_link}`
     end
     puts "Running the buildscript..."
@@ -981,7 +982,6 @@ def repoinstall(packages, totalPackages, bupdate)
         end
 
         packages.each_index do |pkg_index|
-            packageName = packages[pkg_index][0]
             install(packages[pkg_index], conflist)
         end
     end
