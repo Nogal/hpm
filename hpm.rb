@@ -809,6 +809,53 @@ def install(package, conflist)
     end
 end
 
+def dependant_check(packages)
+    # Check if a program being uninstalled has other programs relying on it.
+    # If so, warn the user about running the program.
+
+    f = File.open("/etc/hpm/pkdb/inpk.pdkb", "r")
+    installed_db = f.readlines
+    f.close
+    installed_blocks = find_block(installed_db)
+    packages.each do |current|
+        package_name = current[0]
+        installed_blocks.each do |block|
+            if block[2].include?(package_name)
+                i = block[0]
+                end_block = block[1]
+                while i <= end_block
+                    if installed_blocks[i].include?("DEPENDANT=")
+                        dependant_list = installed_blocks[i].scan(/DEPENDANT=(.+$)/)
+                        if dependant_list != nil
+                            dependant_list = dependant_list.join
+                            dependant_list = dependant_list.split(" ")
+                            packages.each do |package|
+                                if dependant_list.include?(package[0])
+                                    dependant_list.delete(package[0])
+                                end
+                            end
+                            if dependant_list != nil
+                                puts "---WARNING---"
+                                puts "Removing #{package_name} may cause other software on your system to stop working."
+                                puts ""
+                                puts "The following applications may be affected:"
+                                puts dependant_list
+                                puts "Are you sure you want to continue? (N/y)"
+                                STDOUT.flush
+                                decision = STDIN.gets.chomp
+                                if not decision == "Y" || decision == "y" || decision == "yes"
+                                    exit    
+                                end
+                            end
+                        end
+                    end
+                i += 1
+                end
+            end
+        end
+    end
+end
+
 def removeinfo(package, bupdate)
     # Read the uninstall data for the package to be removed. Remove the
     # files which were installed, then check the directories in which they
