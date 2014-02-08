@@ -813,9 +813,13 @@ def dependant_check(packages)
     # Check if a program being uninstalled has other programs relying on it.
     # If so, warn the user about running the program.
 
-    f = File.open("/etc/hpm/pkdb/inpk.pdkb", "r")
+    f = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
     installed_db = f.readlines
     f.close
+    working_db = installed_db.flatten
+    working_db.each do |entry|
+        entry.chomp!
+    end
     installed_blocks = find_block(installed_db)
     packages.each do |current|
         package_name = current[0]
@@ -824,27 +828,29 @@ def dependant_check(packages)
                 i = block[0]
                 end_block = block[1]
                 while i <= end_block
-                    if installed_blocks[i].include?("DEPENDANT=")
-                        dependant_list = installed_blocks[i].scan(/DEPENDANT=(.+$)/)
-                        if dependant_list != nil
-                            dependant_list = dependant_list.join
-                            dependant_list = dependant_list.split(" ")
-                            packages.each do |package|
-                                if dependant_list.include?(package[0])
-                                    dependant_list.delete(package[0])
+                    if not working_db[i] == nil
+                        if working_db[i].include?("DEPENDANT=")
+                            dependant_list = working_db[i].scan(/DEPENDANT=(.+$)/)
+                            if not dependant_list == nil
+                                dependant_list = dependant_list.join
+                                dependant_list = dependant_list.split(" ")
+                                packages.each do |package|
+                                    if dependant_list.include?(package[0])
+                                        dependant_list.delete(package[0])
+                                    end
                                 end
-                            end
-                            if dependant_list != nil
-                                puts "---WARNING---"
-                                puts "Removing #{package_name} may cause other software on your system to stop working."
-                                puts ""
-                                puts "The following applications may be affected:"
-                                puts dependant_list
-                                puts "Are you sure you want to continue? (N/y)"
-                                STDOUT.flush
-                                decision = STDIN.gets.chomp
-                                if not decision == "Y" || decision == "y" || decision == "yes"
-                                    exit    
+                                if not dependant_list.empty?
+                                    puts "---WARNING---"
+                                    puts "Removing #{package_name} may cause other software on your system to stop working."
+                                    puts ""
+                                    puts "The following applications may be affected:"
+                                    puts dependant_list
+                                    puts "Are you sure you want to continue? (N/y)"
+                                    STDOUT.flush
+                                    decision = STDIN.gets.chomp
+                                    if not decision == "Y" || decision == "y" || decision == "yes"
+                                        exit    
+                                    end
                                 end
                             end
                         end
@@ -1173,7 +1179,11 @@ case action
         else 
             helpPage()
         end
-    when "remove"; packages.each {|package| removeinfo(package, 0)}
+    when "remove"
+        dependant_check(packages)
+        packages.each do | package |
+            removeinfo(package, 0)
+        end
     when "source-install"
         sourceinstall(source_link, get_build, repo_fetch)
     when "local-install"
