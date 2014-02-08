@@ -926,10 +926,28 @@ def remove(package, dirList, fileList)
         end
     end
     dbFile = File.open("/etc/hpm/pkdb/inpk.pkdb", "w")
+                puts "new_database: #{new_database.inspect}"
     new_database.each do |line|
+        if line.include?(packageName) 
+            if line.include?("DEPENDANT=") 
+                dependant_list = line.scan(/DEPENDANT=(.+$)/)
+                dependant_list = dependant_list.join
+                dependant_list = dependant_list.split(" ")
+                dependant_list.each do | item |
+                    if item == packageName
+                        dependant_list.delete(item)
+                    end
+                end
+                if dependant_list.empty?
+                    dependant_list = nil
+                end 
+                line = "DEPENDANT=#{dependant_list}"
+            end
+        end
         dbFile.puts line
     end
     dbFile.close
+
      
 end
 
