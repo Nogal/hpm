@@ -809,10 +809,20 @@ def install(package, conflist)
     end
 end
 
-def dependant_check(packages)
+def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list)
     # Check if a program being uninstalled has other programs relying on it.
     # If so, warn the user about running the program.
-
+    
+    if depbool == 0
+        packages.each do | package |
+            pkglist.unshift(package[0])
+        end
+    else
+        new_dependant_list.each do |dependant|
+            pkglist.unshift(dependant)
+        end
+    end
+    depbool = 1
     f = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
     installed_db = f.readlines
     f.close
@@ -821,30 +831,41 @@ def dependant_check(packages)
         entry.chomp!
     end
     installed_blocks = find_block(installed_db)
-    packages.each do |current|
-        package_name = current[0]
+    pkglist.each do |current|
+        pkglist.delete(current)
         installed_blocks.each do |block|
-            if block[2].include?(package_name)
+            if block[2].include?(current)
                 i = block[0]
                 end_block = block[1]
                 while i <= end_block
                     if not working_db[i] == nil
                         if working_db[i].include?("DEPENDANT=")
-                            dependant_list = working_db[i].scan(/DEPENDANT=(.+$)/)
+                            new_dependant_list = working_db[i].scan(/DEPENDANT=(.+$)/)
                             if not dependant_list == nil
-                                dependant_list = dependant_list.join
-                                dependant_list = dependant_list.split(" ")
+                                new_dependant_list = new_dependant_list.join
+                                new_dependant_list = new_dependant_list.split(" ")
+                                if not new_dependant_list.empty?
+                                    new_dependant_list.each do |item|
+                                        if not dependant_list.include?(item)
+                                            dependant_list.unshift(item)
+                                        end
+                                    end
+                                end
                                 packages.each do |package|
                                     if dependant_list.include?(package[0])
                                         dependant_list.delete(package[0])
                                     end
                                 end
+                                if not new_dependant_list.empty?
+                                    dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list)
+                                end
+                                dependant_display = dependant_list.join(", ")
                                 if not dependant_list.empty?
                                     puts "---WARNING---"
-                                    puts "Removing #{package_name} may cause other software on your system to stop working."
+                                    puts "Removing #{current} may cause other software on your system to stop working."
                                     puts ""
                                     puts "The following applications may be affected:"
-                                    puts dependant_list
+                                    puts dependant_display 
                                     puts "Are you sure you want to continue? (N/y)"
                                     STDOUT.flush
                                     decision = STDIN.gets.chomp
@@ -926,7 +947,6 @@ def remove(package, dirList, fileList)
         end
     end
     dbFile = File.open("/etc/hpm/pkdb/inpk.pkdb", "w")
-                puts "new_database: #{new_database.inspect}"
     new_database.each do |line|
         if line.include?(packageName) 
             if line.include?("DEPENDANT=") 
@@ -940,6 +960,8 @@ def remove(package, dirList, fileList)
                 end
                 if dependant_list.empty?
                     dependant_list = nil
+                else
+                    dependant_list = dependant_list.join(" ")
                 end 
                 line = "DEPENDANT=#{dependant_list}"
             end
@@ -1198,7 +1220,11 @@ case action
             helpPage()
         end
     when "remove"
-        dependant_check(packages)
+        dependant_list = Array.new
+        new_dependant_list = Array.new
+        pkglist = Array.new
+        depbool = 0
+        dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list)
         packages.each do | package |
             removeinfo(package, 0)
         end
