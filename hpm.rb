@@ -809,7 +809,7 @@ def install(package, conflist)
     end
 end
 
-def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list)
+def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package)
     # Check if a program being uninstalled has other programs relying on it.
     # If so, warn the user about running the program.
     
@@ -820,9 +820,11 @@ def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_li
     else
         new_dependant_list.each do |dependant|
             pkglist.unshift(dependant)
+            puts "pkglist: #{pkglist.inspect}"
+            puts "dependant_list: #{dependant_list.inspect}"
+            puts "new_dependant_list: #{new_dependant_list.inspect}"
         end
     end
-    depbool = 1
     f = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
     installed_db = f.readlines
     f.close
@@ -845,9 +847,13 @@ def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_li
                                 new_dependant_list = new_dependant_list.join
                                 new_dependant_list = new_dependant_list.split(" ")
                                 if not new_dependant_list.empty?
+                                    if depbool == 0
+                                        trigger_package = current
+                                        depbool = 1
+                                    end 
                                     new_dependant_list.each do |item|
                                         if not dependant_list.include?(item)
-                                            dependant_list.unshift(item)
+                                            dependant_list.push(item)
                                         end
                                     end
                                 end
@@ -857,12 +863,12 @@ def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_li
                                     end
                                 end
                                 if not new_dependant_list.empty?
-                                    dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list)
+                                    dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package)
                                 end
                                 dependant_display = dependant_list.join(", ")
                                 if not dependant_list.empty?
                                     puts "---WARNING---"
-                                    puts "Removing #{current} may cause other software on your system to stop working."
+                                    puts "Removing #{trigger_package} may cause other software on your system to stop working."
                                     puts ""
                                     puts "The following applications may be affected:"
                                     puts dependant_display 
@@ -1223,8 +1229,9 @@ case action
         dependant_list = Array.new
         new_dependant_list = Array.new
         pkglist = Array.new
+        trigger_package = nil
         depbool = 0
-        dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list)
+        dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package)
         packages.each do | package |
             removeinfo(package, 0)
         end
