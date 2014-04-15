@@ -1048,6 +1048,32 @@ def makepkg(package_folder, output_file)
     end
 end
 
+
+def get_summary(package)
+    databaseFile = File.open("/etc/hpm/pkginfo/hpmDatabase.info", "r")
+    database = databaseFile.readlines
+    databaseFile.close
+
+    blocks = find_block(database)
+    blocks.each do |block|
+        if block[2].include?(package)
+            i = block[0]
+            end_block = block[1]
+            while i <= end_block
+                if not database[i] == nil
+                    if database[i].include?('SUMMARY=')
+                        summary = database[i].scan(/SUMMARY=(.+$)/)
+                        puts summary
+                    end
+                end
+                i += 1
+            end
+        end
+    end
+    exit
+end
+
+        
 # Get input from the user by means of arguments passed along with the program.
 # The first argument following the command is considered the action in the
 # program. All subsequent arguments are considered to be packages.
@@ -1057,34 +1083,35 @@ source_link = nil
 get_build = nil
 repo_fetch = nil
 ARGV
-action = ARGV.shift
 ARGV.each_with_index do |argument, index|
+    next_index = index + 1
     if  argument == "-o" || argument == "--output-file"
-        next_index = index + 1
         output_file = ARGV[next_index]
         arg_delete_list.push(argument)
         arg_delete_list.push(output_file)
     elsif  argument == "-s" || argument == "--source-link"
-        next_index = index + 1
         source_link = ARGV[next_index]
         arg_delete_list.push(argument)
         arg_delete_list.push(source_link)
     elsif  argument == "-d" || argument == "--direct-link"
-        next_index = index + 1
         get_build = ARGV[next_index]
         arg_delete_list.push(argument)
         arg_delete_list.push(get_build)
     elsif  argument == "-r" || argument == "--repo-fetch"
-        next_index = index + 1
         repo_fetch = ARGV[next_index]
         arg_delete_list.push(argument)
         arg_delete_list.push(repo_fetch)
+    elsif  argument == "-q" || argument == "--get-summary"
+        paul = ARGV[next_index]
+        pete = get_summary(paul)
     end 
 end
+
 arg_delete_list.each do |delete_item|
     ARGV.delete(delete_item)
 end
 
+action = ARGV.shift
 packagelist = ARGV
 packages = Array.new
 packagelist.each_with_index do |package, i|
