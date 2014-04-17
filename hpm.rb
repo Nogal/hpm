@@ -809,7 +809,7 @@ def install(package, conflist)
     end
 end
 
-def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package)
+def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package, depcheck_list)
     # Check if a program being uninstalled has other programs relying on it.
     # If so, warn the user about running the program.
     
@@ -820,9 +820,9 @@ def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_li
     else
         new_dependant_list.each do |dependant|
             pkglist.unshift(dependant)
-            puts "pkglist: #{pkglist.inspect}"
-            puts "dependant_list: #{dependant_list.inspect}"
-            puts "new_dependant_list: #{new_dependant_list.inspect}"
+#            puts "pkglist: #{pkglist.inspect}"
+#            puts "dependant_list: #{dependant_list.inspect}"
+#            puts "new_dependant_list: #{new_dependant_list.inspect}"
         end
     end
     f = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
@@ -842,6 +842,7 @@ def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_li
                 while i <= end_block
                     if not working_db[i] == nil
                         if working_db[i].include?("DEPENDANT=")
+		                    new_dependant_list = Array.new	
                             new_dependant_list = working_db[i].scan(/DEPENDANT=(.+$)/)
                             if not dependant_list == nil
                                 new_dependant_list = new_dependant_list.join
@@ -853,7 +854,10 @@ def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_li
                                     end 
                                     new_dependant_list.each do |item|
                                         if not dependant_list.include?(item)
+                                            new_item = Array.new
+                                            new_item.push(item, 0)
                                             dependant_list.push(item)
+                                            depcheck_list.push(new_item)
                                         end
                                     end
                                 end
@@ -862,9 +866,13 @@ def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_li
                                         dependant_list.delete(package[0])
                                     end
                                 end
-                                if not new_dependant_list.empty?
-                                    dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package)
+                                depcheck_list.each do |depcheck|
+                                    if depcheck[1] = 0
+                                        depcheck[1] = 1
+                                        dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package, depcheck_list)
+                                    end
                                 end
+
                                 dependant_display = dependant_list.join(", ")
                                 if not dependant_list.empty?
                                     puts "---WARNING---"
@@ -1227,11 +1235,12 @@ case action
         end
     when "remove"
         dependant_list = Array.new
+        depcheck_list = Array.new
         new_dependant_list = Array.new
         pkglist = Array.new
         trigger_package = nil
         depbool = 0
-        dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package)
+        dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package, depcheck_list)
         packages.each do | package |
             removeinfo(package, 0)
         end
