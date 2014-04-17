@@ -249,7 +249,7 @@ def queue_check(database, packageName, packages)
                                     if not database[i].include? "HPMVER="
                                         pkgver = database[i].scan(/PKGVER=(.+$)/)
                                         pkgver = pkgver.join
-                                        if not is_installed(dependency, pkgver)
+                                        if not is_installed(dependency)
                                             depbool = 0
                                             packages.each do |package|
                                                 if package[0] == dependency
@@ -331,7 +331,7 @@ def package_queue(packages)
     end
 end
 
-def is_installed(packageName, pkgver)
+def is_installed(packageName)
     #Query the database to check if the package is already installed on the system.
     dbFile = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
     if checkFile(dbFile, packageName) == true
@@ -1071,7 +1071,7 @@ def repoinstall(packages, totalPackages, bupdate)
                 end
             end
         end
-        if is_installed(packageName, pkgver)
+        if is_installed(packageName)
             puts "#{packageName} is already at the newest version."
             packages.delete_at(pkg_index)
         else
@@ -1219,7 +1219,7 @@ packageDisplay = Array.new
 # Decide which course of action to take
 case action
     when "install"
-        empty_fail
+        empty_fail(packages)
         if not packageDisplay == ""
             package_queue(packages)
             packages.each do | package |
@@ -1241,7 +1241,7 @@ case action
             helpPage()
         end
     when "remove"
-        empty_fail
+        empty_fail(packages)
         dependant_list = Array.new
         depcheck_list = Array.new
         new_dependant_list = Array.new
@@ -1250,7 +1250,11 @@ case action
         depbool = 0
         dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package, depcheck_list)
         packages.each do | package |
-            removeinfo(package, 0)
+            if is_installed(package[0])
+                removeinfo(package, 0)
+            else
+                puts "#{package[0]} is not currently installed."
+            end
         end
     when "source-install"
         sourceinstall(source_link, get_build, repo_fetch)
