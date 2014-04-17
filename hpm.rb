@@ -1208,11 +1208,18 @@ packagelist.each_with_index do |package, i|
     packages[i].push('manual') # [1]
 end
 
-packageDisplay = Array.new
+def empty_fail(packages)
+	if packages.empty?
+		helpPage
+    	exit
+	end
+end
 
+packageDisplay = Array.new
 # Decide which course of action to take
 case action
     when "install"
+        empty_fail
         if not packageDisplay == ""
             package_queue(packages)
             packages.each do | package |
@@ -1234,6 +1241,7 @@ case action
             helpPage()
         end
     when "remove"
+        empty_fail
         dependant_list = Array.new
         depcheck_list = Array.new
         new_dependant_list = Array.new
@@ -1247,6 +1255,7 @@ case action
     when "source-install"
         sourceinstall(source_link, get_build, repo_fetch)
     when "local-install"
+        empty_fail
         if not packageDisplay == ""
             package_queue(packages)
             packages.each do | package |
