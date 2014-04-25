@@ -611,6 +611,25 @@ def update()
     hpmDatabaseFile.puts  $hpmDatabase
     hpmDatabaseFile.close
 
+    # Create a flatfile naming all of the available packages for later use with 
+    # bash completion.
+
+    pkglist = Array.new
+    pkgblocks = find_block($hpmDatabase)
+    pkgblocks.each do |block|
+        pkg_name = block[2]
+        pkg_name = pkg_name.scan(/HPMNAME=(.+$)/)
+        pkg_name = pkg_name.join
+        pkglist.push(pkg_name)
+    end
+
+    pkgfile = File.open("/etc/hpm/pkdb/complist", "w")
+    pkglist.each do | package |
+        pkgfile.puts(package)
+    end
+    pkgfile.close
+
+
     # Check if the current version is the same as the version available from the repo,
     # if not, add it to a file which can be called to in the upgrade function
     
