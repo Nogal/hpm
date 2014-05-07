@@ -1092,6 +1092,17 @@ def get_summary(package)
     exit
 end
 
+def list_installed()
+    databaseFile = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
+    database = databaseFile.readlines
+    databaseFile.close
+
+    blocks = find_block(database)
+    blocks.each do |block|
+        package_name = block[2].scan(/HPMNAME=(.+$)/)
+        puts package_name
+    end
+end
         
 # Get input from the user by means of arguments passed along with the program.
 # The first argument following the command is considered the action in the
@@ -1192,8 +1203,9 @@ case action
                 puts "Aborting Installation"
             end
         else
-            helpPage()
+            helpPage
         end
+    when "list-installed"; list_installed
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
