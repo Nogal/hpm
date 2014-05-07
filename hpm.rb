@@ -1239,8 +1239,8 @@ ARGV.each_with_index do |argument, index|
         arg_delete_list.push(argument)
         arg_delete_list.push(repo_fetch)
     elsif  argument == "-q" || argument == "--get-summary"
-        paul = ARGV[next_index]
-        pete = get_summary(paul)
+        pkgsum = ARGV[next_index]
+        get_summary(pkgsum)
     end 
 end
 
