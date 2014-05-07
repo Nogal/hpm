@@ -611,6 +611,25 @@ def update()
     hpmDatabaseFile.puts  $hpmDatabase
     hpmDatabaseFile.close
 
+    # Create a flatfile naming all of the available packages for later use with 
+    # bash completion.
+
+    pkglist = Array.new
+    pkgblocks = find_block($hpmDatabase)
+    pkgblocks.each do |block|
+        pkg_name = block[2]
+        pkg_name = pkg_name.scan(/HPMNAME=(.+$)/)
+        pkg_name = pkg_name.join
+        pkglist.push(pkg_name)
+    end
+
+    pkgfile = File.open("/etc/hpm/pkdb/complist", "w")
+    pkglist.each do | package |
+        pkgfile.puts(package)
+    end
+    pkgfile.close
+
+
     # Check if the current version is the same as the version available from the repo,
     # if not, add it to a file which can be called to in the upgrade function
     
@@ -1155,6 +1174,43 @@ def makepkg(package_folder, output_file)
     end
 end
 
+
+def get_summary(package)
+    databaseFile = File.open("/etc/hpm/pkginfo/hpmDatabase.info", "r")
+    database = databaseFile.readlines
+    databaseFile.close
+
+    blocks = find_block(database)
+    blocks.each do |block|
+        if block[2].include?(package)
+            i = block[0]
+            end_block = block[1]
+            while i <= end_block
+                if not database[i] == nil
+                    if database[i].include?('SUMMARY=')
+                        summary = database[i].scan(/SUMMARY=(.+$)/)
+                        puts summary
+                    end
+                end
+                i += 1
+            end
+        end
+    end
+    exit
+end
+
+def list_installed()
+    databaseFile = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
+    database = databaseFile.readlines
+    databaseFile.close
+
+    blocks = find_block(database)
+    blocks.each do |block|
+        package_name = block[2].scan(/HPMNAME=(.+$)/)
+        puts package_name
+    end
+end
+        
 # Get input from the user by means of arguments passed along with the program.
 # The first argument following the command is considered the action in the
 # program. All subsequent arguments are considered to be packages.
@@ -1164,34 +1220,35 @@ source_link = nil
 get_build = nil
 repo_fetch = nil
 ARGV
-action = ARGV.shift
 ARGV.each_with_index do |argument, index|
+    next_index = index + 1
     if  argument == "-o" || argument == "--output-file"
-        next_index = index + 1
         output_file = ARGV[next_index]
         arg_delete_list.push(argument)
         arg_delete_list.push(output_file)
     elsif  argument == "-s" || argument == "--source-link"
-        next_index = index + 1
         source_link = ARGV[next_index]
         arg_delete_list.push(argument)
         arg_delete_list.push(source_link)
     elsif  argument == "-d" || argument == "--direct-link"
-        next_index = index + 1
         get_build = ARGV[next_index]
         arg_delete_list.push(argument)
         arg_delete_list.push(get_build)
     elsif  argument == "-r" || argument == "--repo-fetch"
-        next_index = index + 1
         repo_fetch = ARGV[next_index]
         arg_delete_list.push(argument)
         arg_delete_list.push(repo_fetch)
+    elsif  argument == "-q" || argument == "--get-summary"
+        paul = ARGV[next_index]
+        pete = get_summary(paul)
     end 
 end
+
 arg_delete_list.each do |delete_item|
     ARGV.delete(delete_item)
 end
 
+action = ARGV.shift
 packagelist = ARGV
 packages = Array.new
 packagelist.each_with_index do |package, i|
@@ -1276,8 +1333,9 @@ case action
                 puts "Aborting Installation"
             end
         else
-            helpPage()
+            helpPage
         end
+    when "list-installed"; list_installed
     when "clean"; clean
     when "update"; update
     when "upgrade"; upgrade
