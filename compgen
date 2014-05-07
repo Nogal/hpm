@@ -5,7 +5,8 @@ _hpm()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="install makepkg remove source-install local-install clean update upgrade"
+    opts="install makepkg remove source-install local-install clean update \
+            upgrade list-installed"
 
     case "${prev}" in
         hpm)
@@ -13,6 +14,11 @@ _hpm()
             COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
             return 0
             fi
+            ;;
+        install)
+            local rpackages="$(cat /etc/hpm/pkdb/complist | xargs echo)"
+            COMPREPLY=( $(compgen -W "${rpackages}" -- ${cur}) )
+            return 0
             ;;
         local-install)
             local packages=$(for x in `ls . | grep hpac`; do echo $x; done)
