@@ -1266,10 +1266,10 @@ packagelist.each_with_index do |package, i|
 end
 
 def empty_fail(packages)
-	if packages.empty?
-		helpPage
-    	exit
-	end
+    if packages.empty?
+    	helpPage
+        exit
+    end
 end
 
 packageDisplay = Array.new
@@ -1307,10 +1307,20 @@ case action
         depbool = 0
         dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package, depcheck_list)
         packages.each do | package |
-            if is_installed(package[0])
-                removeinfo(package, 0)
-            else
-                puts "#{package[0]} is not currently installed."
+            packageDisplay.push(package[0])
+        end
+        packageDisplay = packageDisplay * ", "
+        puts "Packages to be removed:\n\n#{packageDisplay}\n"
+        puts "Are you sure you want to proceed? (y/n)"
+        STDOUT.flush
+        decision = STDIN.gets.chomp
+        if decision == "Y" || decision == "y" || decision == "yes"
+            packages.each do | package |
+                if is_installed(package[0])
+                    removeinfo(package, 0)
+                else
+                    puts "#{package[0]} is not currently installed."
+                end
             end
         end
     when "source-install"
