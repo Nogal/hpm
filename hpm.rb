@@ -711,11 +711,15 @@ def register_package(package)
     package_name = package[0]
     install_type = package[1]
     dependants = package[2]
+    if not package[3] == nil
+        dependencies = package[3].join
+    end
 
     open('/etc/hpm/pkdb/inpk.pkdb', 'a') { |database|
         database.puts "HPMNAME=#{package_name}" 
         database.puts "INST_TYPE=#{install_type}" 
         database.puts "DEPENDANT=#{dependants}" 
+        database.puts "DEPENDS=#{dependencies}"
     }
 end
 
@@ -754,6 +758,7 @@ def install(package, conflist)
         elsif line.include? "DEPLIST="
             deplist = line.scan(/DEPLIST=(.+$)/)
             deplist.flatten!
+            package.push deplist
             deplist.each do | dependency |
                 dependant_add(packageName, dependency)
             end
@@ -886,7 +891,7 @@ def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_li
                                     end
                                 end
                                 depcheck_list.each do |depcheck|
-                                    if depcheck[1] = 0
+                                    if depcheck[1] == 0
                                         depcheck[1] = 1
                                         dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package, depcheck_list)
                                     end
@@ -904,6 +909,27 @@ def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_li
                                     decision = STDIN.gets.chomp
                                     if not decision == "Y" || decision == "y" || decision == "yes"
                                         exit    
+                                    else
+
+                                        packageDisplay = Array.new
+        packages.each do | package |
+            packageDisplay.push(package[0])
+        end
+        packageDisplay = packageDisplay * ", "
+        puts "Packages to be removed:\n\n#{packageDisplay}\n"
+        puts "Are you sure you want to proceed? (y/n)"
+        STDOUT.flush
+        decision = STDIN.gets.chomp
+        if decision == "Y" || decision == "y" || decision == "yes"
+            packages.each do | package |
+                if is_installed(package[0])
+                    removeinfo(package, 0)
+                else
+                    puts "#{package[0]} is not currently installed."
+                end
+            end
+            exit
+        end
                                     end
                                 end
                             end
@@ -1303,26 +1329,12 @@ case action
         depcheck_list = Array.new
         new_dependant_list = Array.new
         pkglist = Array.new
+#        packages.each do | package |
+#            dependant_list.push(package[0]) 
+#        end
         trigger_package = nil
         depbool = 0
         dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package, depcheck_list)
-        packages.each do | package |
-            packageDisplay.push(package[0])
-        end
-        packageDisplay = packageDisplay * ", "
-        puts "Packages to be removed:\n\n#{packageDisplay}\n"
-        puts "Are you sure you want to proceed? (y/n)"
-        STDOUT.flush
-        decision = STDIN.gets.chomp
-        if decision == "Y" || decision == "y" || decision == "yes"
-            packages.each do | package |
-                if is_installed(package[0])
-                    removeinfo(package, 0)
-                else
-                    puts "#{package[0]} is not currently installed."
-                end
-            end
-        end
     when "source-install"
         sourceinstall(source_link, get_build, repo_fetch)
     when "local-install"
