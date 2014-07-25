@@ -1235,6 +1235,45 @@ def list_installed()
         puts package_name
     end
 end
+
+def manual_check(packages)
+    f = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
+    installed_db = f.readlines
+    f.close
+    working_db = installed_db.flatten
+    working_db.each do |entry|
+        entry.chomp!
+    end 
+    manual_list = Array.new
+    installed_blocks = find_block(installed_db)
+    installed_blocks.each do | block |
+        blockpkg = block[2].scan(/HPMNAME=(.+$)/)
+        blockpkg = blockpkg.join
+        packages.each do | package |
+            if package[0] == blockpkg
+                i = block[0]
+                end_block = block[1]
+                install_type = nil
+                depends = nil
+                while i <= end_block 
+                    if not working_db[i] == nil
+                        if working_db[i].include?('INST_TYPE')
+                            install_type = working_db[i].scan(/INST_TYPE=(.+$)/)
+                            install_type = install_type.join
+                        end
+                        if working_db[i].include?('DEPENDS')
+                            depends = working_db[i].scan(/DEPENDS=(.+$)/)
+                            depends = depends.flatten!
+                        end
+                    end
+                    i += 1
+                end
+                manual_list.push([package[0], install_type, depends])
+            end
+        end
+    end
+    return manual_list
+end
         
 # Get input from the user by means of arguments passed along with the program.
 # The first argument following the command is considered the action in the
@@ -1334,6 +1373,8 @@ case action
         trigger_package = nil
         depbool = 0
         dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package, depcheck_list)
+        manual_list = manual_check(packages)
+        puts "manual_list: #{manual_list.inspect}"
         packages.each do | package |
             packageDisplay.push(package[0])
         end
