@@ -25,6 +25,8 @@
 require 'fileutils'
 require 'io/console'
 
+trap("INT") { exit }
+
 def helpPage()
     # A friendly little help page. This displays to the user whenever a
     # user chooses the "help" commmand, or any invalid command.
