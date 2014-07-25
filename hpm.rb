@@ -846,9 +846,6 @@ def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_li
     else
         new_dependant_list.each do |dependant|
             pkglist.unshift(dependant)
-#            puts "pkglist: #{pkglist.inspect}"
-#            puts "dependant_list: #{dependant_list.inspect}"
-#            puts "new_dependant_list: #{new_dependant_list.inspect}"
         end
     end
     f = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
@@ -1331,12 +1328,30 @@ case action
         depcheck_list = Array.new
         new_dependant_list = Array.new
         pkglist = Array.new
-#        packages.each do | package |
-#            dependant_list.push(package[0]) 
-#        end
+        packages.each do | package |
+            dependant_list.push(package[0]) 
+        end
         trigger_package = nil
         depbool = 0
         dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package, depcheck_list)
+        packages.each do | package |
+            packageDisplay.push(package[0])
+        end
+        packageDisplay = packageDisplay * ", "
+        puts "Packages to be removed:\n\n#{packageDisplay}\n"
+        puts "Are you sure you want to proceed? (y/n)"
+        STDOUT.flush
+        decision = STDIN.gets.chomp
+        if decision == "Y" || decision == "y" || decision == "yes"
+            packages.each do | package |
+                if is_installed(package[0])
+                    removeinfo(package, 0)
+                else
+                    puts "#{package[0]} is not currently installed."
+                end
+            end
+        end
+
     when "source-install"
         sourceinstall(source_link, get_build, repo_fetch)
     when "local-install"
