@@ -835,112 +835,6 @@ def install(package, conflist)
     end
 end
 
-def dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package, depcheck_list)
-    # Check if a program being uninstalled has other programs relying on it.
-    # If so, warn the user about running the program.
-    
-    if depbool == 0
-        packages.each do | package |
-            pkglist.unshift(package[0])
-        end
-    else
-        new_dependant_list.each do |dependant|
-            pkglist.unshift(dependant)
-        end
-    end
-    f = File.open("/etc/hpm/pkdb/inpk.pkdb", "r")
-    installed_db = f.readlines
-    f.close
-    working_db = installed_db.flatten
-    working_db.each do |entry|
-        entry.chomp!
-    end
-    installed_blocks = find_block(installed_db)
-    pkglist.each do |current|
-        pkglist.delete(current)
-        installed_blocks.each do |block|
-            if block[2].include?(current)
-                i = block[0]
-                end_block = block[1]
-                while i <= end_block
-                    if not working_db[i] == nil
-                        if working_db[i].include?("DEPENDANT=")
-		                    new_dependant_list = Array.new	
-                            new_dependant_list = working_db[i].scan(/DEPENDANT=(.+$)/)
-                            if not dependant_list == nil
-                                new_dependant_list = new_dependant_list.join
-                                new_dependant_list = new_dependant_list.split(" ")
-                                if not new_dependant_list.empty?
-                                    if depbool == 0
-                                        trigger_package = current
-                                        depbool = 1
-                                    end 
-                                    new_dependant_list.each do |item|
-                                        if not dependant_list.include?(item)
-                                            new_item = Array.new
-                                            new_item.push(item, 0)
-                                            dependant_list.push(item)
-                                            depcheck_list.push(new_item)
-                                        end
-                                    end
-                                end
-                                packages.each do |package|
-                                    if dependant_list.include?(package[0])
-                                        dependant_list.delete(package[0])
-                                    end
-                                end
-                                depcheck_list.each do |depcheck|
-                                    if depcheck[1] == 0
-                                        depcheck[1] = 1
-                                        dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package, depcheck_list)
-                                    end
-                                end
-
-                                dependant_display = dependant_list.join(", ")
-                                if not dependant_list.empty?
-                                    puts "---WARNING---"
-                                    puts "Removing #{trigger_package} may cause other software on your system to stop working."
-                                    puts ""
-                                    puts "The following applications may be affected:"
-                                    puts dependant_display 
-                                    puts "Are you sure you want to continue? (N/y)"
-                                    STDOUT.flush
-                                    decision = STDIN.gets.chomp
-                                    if not decision == "Y" || decision == "y" || decision == "yes"
-                                        exit    
-                                    else
-
-                                        packageDisplay = Array.new
-        packages.each do | package |
-            packageDisplay.push(package[0])
-        end
-        packageDisplay = packageDisplay * ", "
-        puts "Packages to be removed:\n\n#{packageDisplay}\n"
-        puts "Are you sure you want to proceed? (y/n)"
-        STDOUT.flush
-        decision = STDIN.gets.chomp
-        if decision == "Y" || decision == "y" || decision == "yes"
-            packages.each do | package |
-                if is_installed(package[0])
-                    removeinfo(package, 0)
-                else
-                    puts "#{package[0]} is not currently installed."
-                end
-            end
-            exit
-        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                i += 1
-                end
-            end
-        end
-    end
-end
-
 def removeinfo(package, bupdate)
     # Read the uninstall data for the package to be removed. Remove the
     # files which were installed, then check the directories in which they
@@ -1249,8 +1143,6 @@ def manual_check(package)
     installed_blocks.each do | block |
         blockpkg = block[2].scan(/HPMNAME=(.+$)/)
         blockpkg = blockpkg.join
-#		puts "manual_check packages: #{packages.inspect}"
-#        packages.each do | package |
         if package == blockpkg
             i = block[0]
             end_block = block[1]
@@ -1265,22 +1157,18 @@ def manual_check(package)
                     end
                     if working_db[i].include?('DEPENDS')
                         depends = working_db[i].scan(/DEPENDS=(.+$)/)
-#						puts "depends.type: #{depends.inspect}"
                         depends = depends.flatten!
 						if not depends == nil
 							depends.each do | dependancy |
 								new_dependency_arr = dependancy.split(' ')
 								dependency_arr.push(new_dependency_arr)
 								dependency_arr.flatten!
-#								puts "dependency: #{dependancy.inspect}"
-#								puts "dependency_arr: #{dependency_arr.inspect}"
 							end
 						end
                     end
                 end
                 i += 1
             end
-#			puts "2: dependency_arr: #{dependency_arr.inspect}"
             manual_list.push([package, install_type, dependency_arr])
         end
     end
@@ -1289,18 +1177,13 @@ end
         
 def get_dependants(package)
 		dependants_full = Array.new
-#		puts "package: #{package.inspect}"
         manual_list = manual_check(package)
-#		puts "manual_list: #{manual_list.inspect}"
 		manual_list.each do | item |
 			chkpkg = item[0]
-#			puts "chkpkg: #{chkpkg.inspect}"
 			dependants = item[2]
-#			puts "dependants: #{dependants.inspect}"
 			dependants_full.push(dependants)
 		end
 		dependants_full.flatten!
-#		puts "dependants_full: #{dependants_full.inspect}"
 		return dependants_full
 end
 
@@ -1392,22 +1275,11 @@ case action
         end
     when "remove"
         empty_fail(packages)
-#        dependant_list = Array.new
-#        depcheck_list = Array.new
-#        new_dependant_list = Array.new
-#        pkglist = Array.new
-#        packages.each do | package |
-#            dependant_list.push(package[0]) 
-#        end
-#        trigger_package = nil
-#        depbool = 0
-#        dependant_check(packages, new_dependant_list, pkglist, depbool, dependant_list, trigger_package, depcheck_list)
 		dependants = Array.new
 		checklist = Array.new
 		needlist = Array.new
 		packages.each do | package |
 			new_dependants = get_dependants(package[0])
-#			puts "new dependants: #{new_dependants.inspect}"
 			new_dependants.each do | new_dependant |
     			if new_dependants != Array.new
 					dependants.push(new_dependant)
@@ -1415,11 +1287,7 @@ case action
 			end
 			checklist.push(package[0])
 		end
-#		puts "packages: #{packages.inspect}"
 		dependants.flatten!
-#		puts "dependant[0]: #{dependants[0]}"
-#		puts "dependants: #{dependants.inspect}"
-#		puts "needlist: #{needlist.inspect}"
 		needlist = dependants
 		checklist.flatten!
 		checklist.uniq!
@@ -1427,16 +1295,10 @@ case action
 			needlist.delete(item)
 		end
 		while needlist[0] != nil
-#		puts "needlist[0]: #{needlist.inspect}"
 			needlist.flatten!
-#		puts "needlist: #{needlist.inspect}"
-#		puts "dependants: #{dependants.inspect}"
-#		puts "checklist: #{checklist.inspect}"
     		needlist.each do | item |
-#    			puts "2nd package: #{dependant.inspect}"
     			new_dependants = get_dependants(item)
     			if new_dependants != Array.new
-#					puts "2 dependants: #{dependants.inspect}"
     				dependants.push(new_dependants)
     				needlist.push(new_dependants)
     			end
@@ -1447,46 +1309,24 @@ case action
 					needlist.delete(checked)
 				end
     		end
-#    		puts "dependants: #{dependants.inspect}"
-#    		puts "checklist: #{checklist.inspect}"
 			dependants.flatten!
 			dependants.uniq!
-#			puts "end needlist: #{needlist.inspect}"
 		end
-#		dependants.each do | dependant |
-#			puts "2nd package: #{dependant.inspect}"
-#			new_dependants = get_dependants(dependant)
-#			puts "new dependants: #{new_dependants.inspect}"
-#			if new_dependants != Array.new
-#				dependants.push(new_dependants)
-#				checklist.push(dependant)
-#			end
-#		end
 	    dependants.flatten!
 	    dependants.uniq!
-#		puts "2 dependants: #{dependants.inspect}"
-#		puts "2 checklist: #{checklist.inspect}"
 		new_list = Array.new
 		checklist.each do |item |
 			new_item = manual_check(item)
 			new_list.push(new_item[0])
 		end
-#		puts "new_list: #{new_list.inspect}"
-#		puts "new_list[0]: #{new_list[0].inspect}"
 		dependancy_list = Array.new
 		new_list.each do | new_item |
-#				puts "new_item: #{new_item.inspect}"
-#				puts "new_item[1]: #{new_item[1].inspect}"
-#			puts "new_item[0]: #{new_item[0]}"
-#			puts "new_item[1]: #{new_item[1]}"
 			if new_item[1] == "automatic"
-#				puts "new_item[1]: #{new_item[1].inspect}"
 				new_package = [new_item[0], new_item[1]]
 				dependancy_list.push(new_package)
 				next
 			end
 			new_package = [ new_item[0], new_item[1] ]
-#			puts "new_package: #{new_package.inspect}"
 		end
         packages.each do | package |
             packageDisplay.push(package[0])
@@ -1498,10 +1338,7 @@ case action
 		puts
 		if not new_list.empty? 
 			newDisplay = Array.new
-#			puts "newDisplay: #{newDisplay.inspect}"
 			dependancy_list.each do | new_item |
-#				puts "new_item: #{new_item.inspect}"
-#			puts "newDisplay: #{newDisplay.inspect}"
 				newDisplay.push(new_item[0])
 			end
 			newDisplay = newDisplay * ", "
@@ -1509,9 +1346,7 @@ case action
 			puts newDisplay
 			puts
 		end
-#		puts "packages: #{packages.inspect}"
 		packages = packages + dependancy_list
-#		puts "packages: #{packages.inspect}"
         puts "Are you sure you want to proceed? (y/n)"
         STDOUT.flush
         decision = STDIN.gets.chomp
